@@ -3,21 +3,20 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
-import { GoogleLogin } from '@react-oauth/google';
+import { AuthProvider, useAuth } from './AuthContext'
+import LoginPage from './pages/LoginPage'
 
-function App() {
+function AppContent() {
   const [count, setCount] = useState(0)
+  const { user } = useAuth()
+
+  if (!user) {
+    return <LoginPage />
+  }
 
   return (
     <>
-      <GoogleLogin
-        onSuccess={credentialResponse => {
-          console.log(credentialResponse);
-        }}
-        onError={() => {
-          console.log('Login Failed');
-        }}
-      />
+
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -124,6 +123,14 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

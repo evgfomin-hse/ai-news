@@ -62,6 +62,7 @@ python-version
 # celery beat schedule file
 celerybeat-schedule
 # dotenv
+.env
 env
 # virtualenv
 venv/
@@ -78,3 +79,5 @@ idea/
 vscode/
 # macOS specific files:
 DS_Store
+
+.venv/

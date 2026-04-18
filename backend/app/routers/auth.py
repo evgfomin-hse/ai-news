@@ -7,11 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.dependencies import get_db
-from app.services.users import get_or_create_user
+from app.api.deps import get_user_service
+from app.core.config import settings
+from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,7 @@ def _clear_session_cookie(response: Response) -> None:
 @router.post("/google-login", response_model=GoogleLoginJson)
 def google_login(
     body: GoogleLoginBody,
-    db: Annotated[Session, Depends(get_db)],
+    users: Annotated[UserService, Depends(get_user_service)],
     response: Response,
 ) -> GoogleLoginJson:
     if not settings.google_client_id.strip():
@@ -108,8 +107,7 @@ def google_login(
     if isinstance(picture, str) and not picture.strip():
         picture = None
 
-    user = get_or_create_user(
-        db,
+    user = users.get_or_create(
         google_id=str(google_sub),
         name=str(name),
         picture=picture,
@@ -142,7 +140,7 @@ E2E_USER_EMAIL = "e2e-playwright@example.invalid"
 @router.post("/e2e/bootstrap-session", response_model=GoogleLoginJson)
 def e2e_bootstrap_session(
     request: Request,
-    db: Annotated[Session, Depends(get_db)],
+    users: Annotated[UserService, Depends(get_user_service)],
     response: Response,
 ) -> GoogleLoginJson:
     """Real session + DB user for browser e2e. Disabled unless E2E_BOOTSTRAP_SECRET is set."""
@@ -152,8 +150,7 @@ def e2e_bootstrap_session(
     if request.headers.get("x-e2e-bootstrap-secret") != configured:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    user = get_or_create_user(
-        db,
+    user = users.get_or_create(
         google_id=E2E_GOOGLE_SUBJECT,
         name="E2E User",
         picture=None,

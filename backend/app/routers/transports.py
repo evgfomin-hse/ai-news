@@ -5,15 +5,12 @@ from typing import Annotated
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
-from app.dependencies import get_current_user, get_db
+from app.api.deps import get_current_user, get_transport_service
 from app.models import Transport, User
+from app.services.transport_service import TransportService
 from app.services.transports import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_TOKEN_KEY,
-    ensure_transport,
-    get_active_transport,
     naive_utc_now,
     telegram_chat_id_from_row,
     telegram_token_from_row,
@@ -79,9 +76,9 @@ def _transport_me_out(row: Transport | None) -> TransportMeOut:
 @router.get("/me", response_model=TransportMeOut)
 def get_transport_me(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    transports: Annotated[TransportService, Depends(get_transport_service)],
 ) -> TransportMeOut:
-    row = get_active_transport(db, user.id)
+    row = transports.get_active_for_user(user.id)
     return _transport_me_out(row)
 
 
@@ -89,13 +86,13 @@ def get_transport_me(
 def patch_transport_me(
     body: TransportMePatch,
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    transports: Annotated[TransportService, Depends(get_transport_service)],
 ) -> TransportMeOut:
     if body.telegramBotToken is None and body.telegramChatId is None:
-        row = get_active_transport(db, user.id)
+        row = transports.get_active_for_user(user.id)
         return _transport_me_out(row)
 
-    row = ensure_transport(db, user.id)
+    row = transports.ensure_active_for_user(user.id)
     blob = dict(row.data) if row.data is not None else {}
 
     if body.telegramBotToken is not None:
@@ -120,18 +117,16 @@ def patch_transport_me(
 
     row.data = blob
     row.updated_at = naive_utc_now()
-    db.add(row)
-    db.commit()
-    db.refresh(row)
+    transports.persist_transport(row)
     return _transport_me_out(row)
 
 
 @router.post("/me/telegram-test", response_model=TelegramTestOut)
 def test_telegram_bot(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    transports: Annotated[TransportService, Depends(get_transport_service)],
 ) -> TelegramTestOut:
-    row = get_active_transport(db, user.id)
+    row = transports.get_active_for_user(user.id)
     token = telegram_token_from_row(row)
     if not token:
         raise HTTPException(
@@ -215,9 +210,9 @@ def _telegram_ack_updates(token: str, offset: int) -> None:
 @router.post("/me/telegram-capture-hello", response_model=CaptureHelloOut)
 def capture_hello_message(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    transports: Annotated[TransportService, Depends(get_transport_service)],
 ) -> CaptureHelloOut:
-    row = get_active_transport(db, user.id)
+    row = transports.get_active_for_user(user.id)
     token = telegram_token_from_row(row)
     if not token:
         raise HTTPException(
@@ -268,14 +263,12 @@ def capture_hello_message(
         )
 
     update_id, chat_id_str = picked
-    row = ensure_transport(db, user.id)
+    row = transports.ensure_active_for_user(user.id)
     blob = dict(row.data) if row.data is not None else {}
     blob[TELEGRAM_CHAT_ID_KEY] = chat_id_str
     row.data = blob
     row.updated_at = naive_utc_now()
-    db.add(row)
-    db.commit()
-    db.refresh(row)
+    transports.persist_transport(row)
     _telegram_ack_updates(token, update_id + 1)
     return CaptureHelloOut(
         linked=True,
@@ -287,10 +280,10 @@ def capture_hello_message(
 @router.post("/me/send-message", response_model=SendMessageOut)
 def send_telegram_message(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    transports: Annotated[TransportService, Depends(get_transport_service)],
     body: SendMessageBody,
 ) -> SendMessageOut:
-    row = get_active_transport(db, user.id)
+    row = transports.get_active_for_user(user.id)
     token = telegram_token_from_row(row)
     chat_id = telegram_chat_id_from_row(row)
     if not token:

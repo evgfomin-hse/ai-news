@@ -2,11 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db
-from app.models import Interest, User
-from app.services.interests import get_interest_row, naive_utc_now
+from app.api.deps import get_current_user, get_interest_service
+from app.models import User
+from app.services.interest_service import InterestService
 
 router = APIRouter(prefix="/interests", tags=["interests"])
 
@@ -27,9 +26,9 @@ class InterestMePatch(BaseModel):
 @router.get("/me", response_model=InterestMeOut)
 def get_interests_me(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    interests: Annotated[InterestService, Depends(get_interest_service)],
 ) -> InterestMeOut:
-    row = get_interest_row(db, user.id)
+    row = interests.get_latest_for_user(user.id)
     if row is None:
         return InterestMeOut()
     text = (row.interests or "").strip() if row.interests is not None else ""
@@ -40,26 +39,8 @@ def get_interests_me(
 def patch_interests_me(
     body: InterestMePatch,
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    interests: Annotated[InterestService, Depends(get_interest_service)],
 ) -> InterestMeOut:
-    now = naive_utc_now()
-    row = get_interest_row(db, user.id)
-    text = body.interests.strip()
-
-    if row is None:
-        row = Interest(
-            user_id=user.id,
-            interests=text or None,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(row)
-    else:
-        row.interests = text or None
-        row.updated_at = now
-        db.add(row)
-
-    db.commit()
-    db.refresh(row)
+    row = interests.upsert_for_user(user.id, interests_text=body.interests)
     out_text = (row.interests or "").strip() if row.interests is not None else ""
     return InterestMeOut(interestId=row.id, interests=out_text)

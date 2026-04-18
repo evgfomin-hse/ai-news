@@ -2,12 +2,17 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db, get_summary_service
+from app.api.deps import (
+    get_current_user,
+    get_summary_maintenance_service,
+    get_summary_service,
+    get_user_service,
+)
 from app.models import User
 from app.services.summary import SummaryService, UserSummaryResponse
-from app.services.summary.generation import insert_generated_summary_for_user
+from app.services.summary.maintenance import SummaryMaintenanceService
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -55,11 +60,10 @@ def get_my_summary(
 @router.post("/me/summary/generate")
 def generate_my_summary(
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    maintenance: Annotated[SummaryMaintenanceService, Depends(get_summary_maintenance_service)],
 ) -> dict[str, bool | int]:
     """Insert one `summaries` row for the current user (same template as the nightly job)."""
-    n = insert_generated_summary_for_user(db, user.id)
-    db.commit()
+    n = maintenance.append_placeholder_for_user(user.id)
     return {"ok": True, "rows_inserted": n}
 
 
@@ -67,17 +71,7 @@ def generate_my_summary(
 def patch_me(
     body: UserMePatch,
     user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
+    users: Annotated[UserService, Depends(get_user_service)],
 ) -> UserMeOut:
-    changed = False
-    if body.name is not None:
-        user.name = body.name
-        changed = True
-    if body.picture is not None:
-        user.picture = body.picture
-        changed = True
-    if changed:
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+    users.patch_profile(user, name=body.name, picture=body.picture)
     return _user_me_out(user)

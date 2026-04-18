@@ -1,8 +1,5 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from app.models import Transport
 
 TELEGRAM_TOKEN_KEY = "telegramBotToken"
@@ -11,31 +8,6 @@ TELEGRAM_CHAT_ID_KEY = "telegramChatId"
 
 def naive_utc_now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
-
-
-def get_active_transport(db: Session, user_id: int) -> Transport | None:
-    return db.scalar(
-        select(Transport)
-        .where(Transport.user_id == user_id, Transport.deleted_at.is_(None))
-        .order_by(Transport.id.desc())
-        .limit(1)
-    )
-
-
-def ensure_transport(db: Session, user_id: int) -> Transport:
-    row = get_active_transport(db, user_id)
-    if row is not None:
-        return row
-    row = Transport(
-        user_id=user_id,
-        data={},
-        created_at=naive_utc_now(),
-        updated_at=naive_utc_now(),
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
 
 
 def telegram_token_from_row(row: Transport | None) -> str:

@@ -1,9 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-
-from app.models import Summary
+from app.repositories.summaries import SummaryRepository
 from app.services.summary.base import SummaryService
 from app.services.summary.schemas import SummaryItem, UserSummaryResponse
 
@@ -27,8 +24,8 @@ class PostgresSummaryService(SummaryService):
 
 There are no summary records for your user yet. Insert rows into **`summaries`** (`user_id`, `summary`, `created_at`) to see them here."""
 
-    def __init__(self, db: Session) -> None:
-        self._db = db
+    def __init__(self, summaries: SummaryRepository) -> None:
+        self._summaries = summaries
 
     def get_summary_for_user(
         self,
@@ -37,12 +34,7 @@ There are no summary records for your user yet. Insert rows into **`summaries`**
         page: int = 1,
         page_size: int = 20,
     ) -> UserSummaryResponse:
-        total = int(
-            self._db.scalar(
-                select(func.count()).select_from(Summary).where(Summary.user_id == user_id)
-            )
-            or 0
-        )
+        total = self._summaries.count_for_user(user_id)
         tp = _total_pages(total, page_size)
 
         if total == 0:
@@ -59,15 +51,7 @@ There are no summary records for your user yet. Insert rows into **`summaries`**
         safe_page = min(max(page, 1), tp)
         offset = (safe_page - 1) * page_size
 
-        rows = list(
-            self._db.scalars(
-                select(Summary)
-                .where(Summary.user_id == user_id)
-                .order_by(Summary.created_at.desc().nulls_last(), Summary.id.desc())
-                .offset(offset)
-                .limit(page_size)
-            ).all()
-        )
+        rows = self._summaries.list_page_for_user(user_id, offset=offset, limit=page_size)
 
         items: list[SummaryItem] = []
         latest: datetime | None = None

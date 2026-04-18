@@ -4,13 +4,18 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import SessionLocal
+from app.core.config import settings
+from app.core.database import SessionLocal
 from app.models import User
+from app.repositories.summaries import SummaryRepository
+from app.services.health_service import HealthService
+from app.services.interest_service import InterestService
 from app.services.summary import PostgresSummaryService, SummaryService
+from app.services.summary.maintenance import SummaryMaintenanceService
+from app.services.transport_service import TransportService
+from app.services.user_service import UserService
 
 bearer_optional = HTTPBearer(auto_error=False)
 
@@ -23,9 +28,31 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
+    return UserService(db)
+
+
+def get_interest_service(db: Annotated[Session, Depends(get_db)]) -> InterestService:
+    return InterestService(db)
+
+
+def get_transport_service(db: Annotated[Session, Depends(get_db)]) -> TransportService:
+    return TransportService(db)
+
+
+def get_health_service(db: Annotated[Session, Depends(get_db)]) -> HealthService:
+    return HealthService(db)
+
+
+def get_summary_maintenance_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> SummaryMaintenanceService:
+    return SummaryMaintenanceService(db)
+
+
 def get_summary_service(db: Annotated[Session, Depends(get_db)]) -> SummaryService:
-    """Summary rows from coursework `public.summaries` (Postgres)."""
-    return PostgresSummaryService(db)
+    """Read-side summaries from coursework `public.summaries` (Postgres)."""
+    return PostgresSummaryService(SummaryRepository(db))
 
 
 def get_session_jwt(
@@ -44,7 +71,7 @@ def get_session_jwt(
 
 def get_current_user(
     token: Annotated[str, Depends(get_session_jwt)],
-    db: Annotated[Session, Depends(get_db)],
+    users: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
     try:
         payload = jwt.decode(
@@ -59,7 +86,7 @@ def get_current_user(
     except (jwt.PyJWTError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid token") from None
 
-    user = db.scalar(select(User).where(User.id == user_id))
+    user = users.get_by_id(user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user

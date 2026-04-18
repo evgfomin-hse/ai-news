@@ -6,9 +6,9 @@ import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.config import settings
-from app.database import SessionLocal
-from app.services.summary.generation import run_summary_generation_for_all_users
+from app.core.config import settings
+from app.core.database import SessionLocal
+from app.services.summary.maintenance import SummaryMaintenanceService
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,7 @@ SUMMARY_JOB_ID = "summary_generation_midnight"
 def _nightly_summary_job() -> None:
     db = SessionLocal()
     try:
-        stats = run_summary_generation_for_all_users(db)
-        db.commit()
+        stats = SummaryMaintenanceService(db).run_bulk_for_all_users()
         logger.info("Nightly summary job finished: %s", stats)
     except Exception:
         logger.exception("Nightly summary job failed")

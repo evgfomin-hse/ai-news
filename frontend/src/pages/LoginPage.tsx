@@ -1,9 +1,8 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import type { FC } from 'react';
 import { useState } from 'react';
+import { apiUrl } from '../api';
 import { useAuth } from '../AuthContext';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const LoginPage: FC = () => {
   const { login } = useAuth();
@@ -15,9 +14,10 @@ const LoginPage: FC = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_URL}/auth/google-login`, {
+      const response = await fetch(apiUrl('/auth/google-login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token: credentialResponse.credential }),
       });
 
@@ -26,12 +26,12 @@ const LoginPage: FC = () => {
       }
 
       const data = await response.json();
-      
+
       login({
-        token: data.token,
         user: {
           id: data.user.id,
           username: data.user.username,
+          email: data.user.email,
           avatarUrl: data.user.avatarUrl,
         },
       });

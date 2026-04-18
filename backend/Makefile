@@ -13,4 +13,5 @@ setup:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
 dev:
+	$(PYTHON) -m pip install -r requirements.txt
 	$(PYTHON) -m uvicorn app.main:app --reload

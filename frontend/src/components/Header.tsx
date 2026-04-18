@@ -31,7 +31,7 @@ const Header: FC = () => {
 
       <div>
         {user ? (
-          <button onClick={logout} style={buttonStyle}>Logout</button>
+          <button type="button" onClick={() => void logout()} style={buttonStyle}>Logout</button>
         ) : (
           <a href="/login"><button style={buttonStyle}>Login</button></a>
         )}

@@ -3,7 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
-import { AuthProvider, useAuth } from './AuthContext'
+import { useAuth } from './AuthContext'
 import LoginPage from './pages/LoginPage'
 
 function AppContent() {
@@ -127,11 +127,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  )
+  return <AppContent />
 }
 
 export default App

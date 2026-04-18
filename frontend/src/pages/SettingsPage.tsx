@@ -1,4 +1,4 @@
-import type { CSSProperties, FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import {
   useCallback,
   useEffect,
@@ -9,26 +9,38 @@ import { Link } from 'react-router-dom';
 import { apiUrl } from '../api';
 import { useAuth } from '../AuthContext';
 
-const linkBtn: CSSProperties = {
-  display: 'inline-block',
-  marginBottom: 24,
-  padding: '8px 14px',
-  borderRadius: 8,
-  border: '1px solid #ccc',
-  background: '#fff',
-  textDecoration: 'none',
-  color: '#111',
-  fontSize: 14,
-};
+function Panel({
+  title,
+  section,
+  sub,
+  children,
+}: {
+  title: string;
+  section: string;
+  sub?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="panel">
+      <header className="panel-head">
+        <span className="panel-sec">§{section}</span>
+        <span className="panel-title">{title}</span>
+        <span className="panel-dots">{'·'.repeat(48)}</span>
+      </header>
+      {sub ? <p className="panel-sub">{sub}</p> : null}
+      <div className="panel-body">{children}</div>
+    </section>
+  );
+}
 
-const btn: CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 8,
-  border: '1px solid #ccc',
-  background: '#fff',
-  cursor: 'pointer',
-  fontSize: 14,
-};
+function Row({ k, v }: { k: string; v: ReactNode }) {
+  return (
+    <div className="row">
+      <div className="row-k">{k}</div>
+      <div className="row-v">{v}</div>
+    </div>
+  );
+}
 
 type TransportMe = {
   transportId: number | null;
@@ -360,58 +372,49 @@ const SettingsPage: FC = () => {
   };
 
   return (
-    <main style={{ maxWidth: 560, margin: '0 auto', padding: '24px 16px 48px' }}>
-      <Link to="/" style={linkBtn}>
-        ← Back to home
-      </Link>
-      <h1 style={{ marginTop: 0, fontSize: '1.75rem' }}>Settings</h1>
-      <dl style={{ margin: '0 0 32px', color: '#333' }}>
-        <dt style={{ fontWeight: 600, marginTop: 12 }}>Display name</dt>
-        <dd style={{ margin: '4px 0 0' }}>{user?.username ?? '—'}</dd>
-        <dt style={{ fontWeight: 600, marginTop: 12 }}>Email</dt>
-        <dd style={{ margin: '4px 0 0' }}>{user?.email ?? '—'}</dd>
-      </dl>
+    <div className="settings">
+      <div className="set-head">
+        <Link to="/" className="btn-ghost">
+          ← back
+        </Link>
+        <h2 className="h2">
+          settings<span className="accent">.</span>config
+        </h2>
+        <span className="spacer" />
+        <span className="dim small hide-sm">coursework · HSE</span>
+      </div>
 
-      <section
-        style={{
-          paddingTop: 24,
-          borderTop: '1px solid #eee',
-        }}
-      >
-        <h2 style={{ fontSize: '1.15rem', marginBottom: 8 }}>Interests</h2>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>
-          Stored in the coursework <code>interests</code> table (
-          <code>interests</code> text column).
-        </p>
-        {loading ? (
-          <p style={{ color: '#666' }}>Loading…</p>
-        ) : (
-          <>
-            {interestRow?.interestId != null ? (
-              <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
-                Row id {interestRow.interestId}
-              </p>
-            ) : null}
-            <textarea
-              value={interestsDraft}
-              onChange={(e) => setInterestsDraft(e.target.value)}
-              rows={5}
-              placeholder="e.g. machine learning, hiking, cinema…"
-              style={{
-                width: '100%',
-                maxWidth: 520,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #ccc',
-                fontSize: 14,
-                boxSizing: 'border-box',
-                resize: 'vertical',
-              }}
-            />
-            <div style={{ marginTop: 10 }}>
+      <div className="set-grid">
+        <Panel title="account" section="01">
+          <Row k="display name" v={user?.username ?? '—'} />
+          <Row k="email" v={user?.email ?? '—'} />
+        </Panel>
+
+        <Panel
+          title="interests"
+          section="02"
+          sub="Stored in public.interests (text column)."
+        >
+          {loading ? (
+            <p className="dim">Loading…</p>
+          ) : (
+            <>
+              {interestRow?.interestId != null ? (
+                <p className="dim small" style={{ marginBottom: 8 }}>
+                  row id {interestRow.interestId}
+                </p>
+              ) : null}
+              <textarea
+                className="input"
+                value={interestsDraft}
+                onChange={(e) => setInterestsDraft(e.target.value)}
+                rows={5}
+                placeholder="e.g. machine learning, hiking, cinema…"
+                style={{ maxWidth: '100%', minHeight: 120, resize: 'vertical' }}
+              />
               <button
                 type="button"
-                style={btn}
+                className="btn-primary small"
                 disabled={
                   savingInterests ||
                   interestsDraft === (interestRow?.interests ?? '')
@@ -420,255 +423,183 @@ const SettingsPage: FC = () => {
               >
                 {savingInterests ? 'Saving…' : 'Save interests'}
               </button>
-            </div>
-          </>
-        )}
-      </section>
+            </>
+          )}
+        </Panel>
 
-      <section
-        style={{
-          paddingTop: 24,
-          borderTop: '1px solid #eee',
-        }}
-      >
-        <h2 style={{ fontSize: '1.15rem', marginBottom: 8 }}>Transport</h2>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
-          Your bot token and chat id live in <code>transports.data</code> (
-          <code>telegramBotToken</code>, <code>telegramChatId</code>). The
-          server uses them to call Telegram&apos;s <code>sendMessage</code> for
-          you. The token is never returned after save.
-        </p>
-
-        {helloSession ? (
-          <div
-            style={{
-              marginBottom: 20,
-              padding: 16,
-              borderRadius: 10,
-              border: '1px solid #90caf9',
-              background: '#e3f2fd',
-              color: '#0d47a1',
-            }}
-          >
-            <strong style={{ display: 'block', marginBottom: 8 }}>
-              Link your Telegram chat
-            </strong>
-            <ol style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 14 }}>
-              <li>
-                Open Telegram and find your bot{' '}
-                {helloSession.botUsername ? (
-                  <strong>@{helloSession.botUsername}</strong>
-                ) : (
-                  <span>(the one for this token)</span>
-                )}
-                .
-              </li>
-              <li>
-                Send exactly this text as a normal message:{' '}
-                <code style={{ background: '#fff', padding: '2px 6px' }}>
-                  hello
-                </code>
-              </li>
-              <li>Keep this page open — we detect it automatically.</li>
-            </ol>
-            {helloHint ? (
-              <p style={{ fontSize: 13, margin: '0 0 12px' }}>{helloHint}</p>
-            ) : null}
-            <button type="button" style={btn} onClick={clearHelloPoll}>
-              Cancel linking
-            </button>
-          </div>
-        ) : null}
-
-        {loading ? (
-          <p style={{ color: '#666' }}>Loading…</p>
-        ) : (
-          <>
-            <p style={{ fontSize: 14, marginBottom: 12 }}>
-              Status:{' '}
-              <strong>
-                {transport?.telegramConfigured
-                  ? 'Bot token on file'
-                  : 'No token saved'}
+        <Panel
+          title="transport"
+          section="03"
+          sub="Bot token + chat id in transports.data. Token never returned after save."
+        >
+          {helloSession ? (
+            <div className="sidecard" style={{ marginBottom: 16 }}>
+              <strong style={{ display: 'block', marginBottom: 8 }}>
+                Link your Telegram chat
               </strong>
-              {' · '}
-              <strong>
-                {transport?.telegramChatId
-                  ? `Chat id ${transport.telegramChatId}`
-                  : 'Chat id not set'}
-              </strong>
-              {transport?.transportId != null ? (
-                <span style={{ color: '#888' }}>
-                  {' '}
-                  (transport id {transport.transportId})
-                </span>
-              ) : null}
-            </p>
-
-            <label
-              style={{
-                display: 'block',
-                fontWeight: 600,
-                fontSize: 14,
-                marginBottom: 6,
-              }}
-            >
-              Telegram bot token
-            </label>
-            <input
-              type="password"
-              autoComplete="off"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder={
-                transport?.telegramConfigured
-                  ? 'New token to replace, or Clear token'
-                  : 'Paste token from @BotFather'
-              }
-              style={{
-                width: '100%',
-                maxWidth: 420,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #ccc',
-                fontSize: 14,
-                boxSizing: 'border-box',
-              }}
-            />
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 10,
-                marginTop: 10,
-                alignItems: 'center',
-              }}
-            >
-              <button
-                type="button"
-                style={btn}
-                disabled={saving || !tokenInput.trim()}
-                onClick={() => void saveToken()}
+              <ol
+                className="dim"
+                style={{
+                  margin: '0 0 12px',
+                  paddingLeft: 20,
+                  fontSize: 13,
+                  listStyle: 'decimal',
+                }}
               >
-                {saving ? 'Saving…' : 'Save token'}
+                <li>
+                  Open Telegram and find your bot{' '}
+                  {helloSession.botUsername ? (
+                    <strong>@{helloSession.botUsername}</strong>
+                  ) : (
+                    <span>(the one for this token)</span>
+                  )}
+                  .
+                </li>
+                <li>
+                  Send exactly: <code className="mono">hello</code>
+                </li>
+                <li>Keep this page open — we poll for it.</li>
+              </ol>
+              {helloHint ? <p className="small" style={{ margin: '0 0 12px' }}>{helloHint}</p> : null}
+              <button type="button" className="btn-secondary small" onClick={clearHelloPoll}>
+                Cancel linking
               </button>
-              <button
-                type="button"
-                style={btn}
-                disabled={
-                  testing ||
-                  !transport?.telegramConfigured ||
-                  Boolean(helloSession)
+            </div>
+          ) : null}
+
+          {loading ? (
+            <p className="dim">Loading…</p>
+          ) : (
+            <>
+              <p className="tg-linked dim" style={{ marginBottom: 12 }}>
+                <strong className="ln">
+                  {transport?.telegramConfigured ? 'token on file' : 'no token'}
+                </strong>
+                {' · '}
+                <strong className="ln">
+                  {transport?.telegramChatId
+                    ? `chat ${transport.telegramChatId}`
+                    : 'chat not set'}
+                </strong>
+                {transport?.transportId != null ? (
+                  <span className="faint"> · transport id {transport.transportId}</span>
+                ) : null}
+              </p>
+
+              <Row
+                k="bot token"
+                v={
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    className="input"
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    placeholder={
+                      transport?.telegramConfigured
+                        ? 'New token to replace, or clear'
+                        : 'Paste from @BotFather'
+                    }
+                  />
                 }
-                onClick={() => void testTelegram()}
-              >
-                {testing ? 'Testing…' : 'Test bot'}
-              </button>
-              <button
-                type="button"
-                style={{ ...btn, color: '#a33' }}
-                disabled={saving || !transport?.telegramConfigured}
-                onClick={() => void clearToken()}
-              >
-                Clear token
-              </button>
-            </div>
+              />
 
-            <label
-              style={{
-                display: 'block',
-                fontWeight: 600,
-                fontSize: 14,
-                marginTop: 28,
-                marginBottom: 6,
-              }}
-            >
-              Telegram chat id (optional)
-            </label>
-            <p style={{ color: '#666', fontSize: 13, margin: '0 0 8px' }}>
-              Or paste your chat id manually. Use <strong>Test bot</strong>{' '}
-              without a chat id to link automatically after you send{' '}
-              <code>hello</code>.
-            </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="e.g. 123456789"
-              style={{
-                width: '100%',
-                maxWidth: 420,
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #ccc',
-                fontSize: 14,
-                boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ marginTop: 10 }}>
+              <div className="tg-actions">
+                <button
+                  type="button"
+                  className="btn-secondary small"
+                  disabled={saving || !tokenInput.trim()}
+                  onClick={() => void saveToken()}
+                >
+                  {saving ? 'Saving…' : 'Save token'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary small"
+                  disabled={
+                    testing ||
+                    !transport?.telegramConfigured ||
+                    Boolean(helloSession)
+                  }
+                  onClick={() => void testTelegram()}
+                >
+                  {testing ? 'Testing…' : 'Test bot'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-danger small"
+                  disabled={saving || !transport?.telegramConfigured}
+                  onClick={() => void clearToken()}
+                >
+                  Clear token
+                </button>
+              </div>
+
+              <Row
+                k="chat id"
+                v={
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    className="input"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="e.g. 123456789"
+                  />
+                }
+              />
               <button
                 type="button"
-                style={btn}
+                className="btn-secondary small"
                 disabled={
-                  saving ||
-                  chatInput.trim() === (transport?.telegramChatId ?? '')
+                  saving || chatInput.trim() === (transport?.telegramChatId ?? '')
                 }
                 onClick={() => void saveChatId()}
               >
                 {saving ? 'Saving…' : 'Save chat id'}
               </button>
-            </div>
 
-            <div style={{ marginTop: 28 }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 8 }}>Send message</h3>
-              <button
-                type="button"
-                style={btn}
-                disabled={
-                  sending ||
-                  !transport?.telegramConfigured ||
-                  !transport?.telegramChatId
-                }
-                onClick={() => void sendTestMessage()}
-              >
-                {sending ? 'Sending…' : 'Send test message to my chat'}
-              </button>
-            </div>
+              <div style={{ marginTop: 16 }}>
+                <div className="tw-label" style={{ marginBottom: 6 }}>
+                  send message
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary small"
+                  disabled={
+                    sending ||
+                    !transport?.telegramConfigured ||
+                    !transport?.telegramChatId
+                  }
+                  onClick={() => void sendTestMessage()}
+                >
+                  {sending ? 'Sending…' : 'Send test to my chat'}
+                </button>
+              </div>
 
-            {message ? (
-              <p
-                style={{
-                  marginTop: 14,
-                  padding: 10,
-                  background: '#e8f5e9',
-                  color: '#1b5e20',
-                  borderRadius: 8,
-                  fontSize: 14,
-                }}
-              >
-                {message}
-              </p>
-            ) : null}
-            {error ? (
-              <p
-                style={{
-                  marginTop: 14,
-                  padding: 10,
-                  background: '#ffebee',
-                  color: '#b71c1c',
-                  borderRadius: 8,
-                  fontSize: 14,
-                }}
-              >
-                {error}
-              </p>
-            ) : null}
-          </>
-        )}
-      </section>
-    </main>
+              {message ? (
+                <pre className="tg-preview" style={{ marginTop: 14, color: 'var(--text)' }}>
+                  {message}
+                </pre>
+              ) : null}
+              {error ? (
+                <pre
+                  className="tg-preview"
+                  style={{
+                    marginTop: 14,
+                    borderColor: 'oklch(0.40 0.10 25)',
+                    color: 'oklch(0.78 0.14 25)',
+                  }}
+                >
+                  {error}
+                </pre>
+              ) : null}
+            </>
+          )}
+        </Panel>
+      </div>
+    </div>
   );
 };
 

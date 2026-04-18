@@ -1,25 +1,15 @@
 import type { Components } from 'react-markdown';
-import type { CSSProperties, FC } from 'react';
-import { useCallback, useState } from 'react';
+import type { FC, KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { apiUrl } from '../api';
+import { useAuth } from '../AuthContext';
 import './homeSummaryArticle.css';
 
-const PAGE_SIZE = 10;
-
-const btn: CSSProperties = {
-  display: 'inline-block',
-  padding: '10px 18px',
-  borderRadius: 8,
-  border: '1px solid #ccc',
-  background: '#fff',
-  cursor: 'pointer',
-  textDecoration: 'none',
-  color: '#111',
-  fontSize: 15,
-};
+/** Rows per page on home (matches “6 bullets” layout). */
+const PAGE_SIZE = 6;
 
 const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => (
@@ -27,8 +17,10 @@ const markdownComponents: Components = {
   ),
 };
 
+type SummaryListItem = { id: string; title: string; body: string };
+
 type UserSummaryResponse = {
-  items: { id: string; title: string; body: string }[];
+  items: SummaryListItem[];
   total: number;
   page: number;
   page_size: number;
@@ -38,9 +30,11 @@ type UserSummaryResponse = {
 };
 
 const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
-  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-    {text}
-  </ReactMarkdown>
+  <div className="summary-md">
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {text}
+    </ReactMarkdown>
+  </div>
 );
 
 function formatGeneratedAt(iso: string): string {
@@ -48,11 +42,27 @@ function formatGeneratedAt(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+/** One-line preview for bullet rows (markdown shown in empty-state only). */
+function previewPlain(body: string, max = 200): string {
+  const flat = body.replace(/\s+/g, ' ').trim();
+  if (flat.length <= max) return flat;
+  return `${flat.slice(0, max)}…`;
+}
+
+function openDetailFromKey(e: KeyboardEvent, it: SummaryListItem, open: (v: SummaryListItem) => void) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  open(it);
+}
+
 const HomePage: FC = () => {
+  const { user } = useAuth();
   const [summaryPayload, setSummaryPayload] = useState<UserSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<SummaryListItem | null>(null);
+  const modalCloseRef = useRef<HTMLButtonElement>(null);
 
   const fetchSummaryPage = useCallback(async (page: number) => {
     setLoading(true);
@@ -84,10 +94,24 @@ const HomePage: FC = () => {
     }
   }, []);
 
-  const loadSummaryFromStart = () => {
-    setSummaryPayload(null);
+  useEffect(() => {
     void fetchSummaryPage(1);
-  };
+  }, [fetchSummaryPage]);
+
+  useEffect(() => {
+    if (!detailItem) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    modalCloseRef.current?.focus();
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setDetailItem(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [detailItem]);
 
   const generateMySummary = async () => {
     setGenLoading(true);
@@ -116,150 +140,179 @@ const HomePage: FC = () => {
     }
   };
 
+  const today = new Date().toISOString().slice(0, 10);
+  const name = String(user?.username ?? 'user');
+
   return (
-    <main style={{ maxWidth: 560, margin: '0 auto', padding: '24px 16px 48px' }}>
-      <h1 style={{ marginTop: 0, fontSize: '1.75rem' }}>Home</h1>
-      <p style={{ color: '#444', marginBottom: 20 }}>You are signed in.</p>
-
-      <nav style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Link to="/settings" style={btn}>
-          Settings
-        </Link>
-      </nav>
-
-      <section style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid #eee' }}>
-        <h2 style={{ fontSize: '1.15rem', marginBottom: 12 }}>Summary</h2>
-        <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>
-          Paginated markdown from <code>public.summaries</code> ({PAGE_SIZE} per page). A nightly
-          task inserts one row per user at <strong>00:00</strong> (timezone from server config,
-          default UTC).
-        </p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            type="button"
-            style={{ ...btn, opacity: loading ? 0.65 : 1, pointerEvents: loading ? 'none' : 'auto' }}
-            onClick={() => loadSummaryFromStart()}
-          >
-            {loading ? 'Loading…' : 'Load summary'}
-          </button>
-          <button
-            type="button"
-            style={{
-              ...btn,
-              opacity: genLoading || loading ? 0.65 : 1,
-              pointerEvents: genLoading || loading ? 'none' : 'auto',
-            }}
-            onClick={() => void generateMySummary()}
-          >
-            {genLoading ? 'Generating…' : 'Generate now'}
-          </button>
+    <div className="home">
+      <section className="home-head">
+        <div>
+          <div className="kicker">
+            <span className="accent">●</span> brief · {today}
+          </div>
+          <h2 className="h2">
+            good morning, <span className="accent">{name}</span>
+            <span className="dim h2-dim"> — summaries from your coursework table.</span>
+          </h2>
+          <div className="meta-row">
+            <span className="pill">
+              <span className="accent">{summaryPayload?.total ?? '—'}</span> rows
+            </span>
+            <span className="pill">
+              <span className="accent">{PAGE_SIZE}</span> per page
+            </span>
+            <span className="pill">
+              nightly <span className="accent">00:00</span> UTC
+            </span>
+          </div>
         </div>
-        {fetchError ? (
-          <p
-            style={{
-              marginTop: 16,
-              padding: 12,
-              background: '#ffebee',
-              color: '#b71c1c',
-              borderRadius: 8,
-              fontSize: 14,
-            }}
-          >
-            {fetchError}
-          </p>
-        ) : null}
-        {summaryPayload ? (
-          <>
-            <p
-              style={{
-                marginTop: 16,
-                marginBottom: 0,
-                fontSize: 13,
-                color: '#666',
-              }}
-            >
-              {summaryPayload.total_pages > 0 ? (
-                <>
-                  Page {summaryPayload.page} of {summaryPayload.total_pages} ·{' '}
-                  {summaryPayload.total} total
-                </>
-              ) : (
-                <>0 summaries</>
-              )}
-            </p>
-            {summaryPayload.generated_at ? (
-              <p
-                style={{
-                  marginTop: 6,
-                  marginBottom: 0,
-                  fontSize: 13,
-                  color: '#666',
-                }}
-              >
-                Latest on this page:{' '}
-                <time dateTime={summaryPayload.generated_at}>
-                  {formatGeneratedAt(summaryPayload.generated_at)}
-                </time>
-              </p>
-            ) : null}
-            {summaryPayload.total_pages > 1 ? (
-              <div
-                style={{
-                  marginTop: 12,
-                  display: 'flex',
-                  gap: 10,
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                }}
-              >
-                <button
-                  type="button"
-                  style={{ ...btn, padding: '8px 14px', fontSize: 14 }}
-                  disabled={loading || summaryPayload.page <= 1}
-                  onClick={() => void fetchSummaryPage(summaryPayload.page - 1)}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  style={{ ...btn, padding: '8px 14px', fontSize: 14 }}
-                  disabled={loading || summaryPayload.page >= summaryPayload.total_pages}
-                  onClick={() => void fetchSummaryPage(summaryPayload.page + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
-            <article
-              style={{
-                marginTop: 12,
-                padding: 16,
-                background: '#fafafa',
-                borderRadius: 8,
-                border: '1px solid #eee',
-                lineHeight: 1.55,
-                color: '#222',
-              }}
-            >
-              {summaryPayload.items.length > 0 ? (
-                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                  {summaryPayload.items.map((it) => (
-                    <li key={it.id} style={{ marginBottom: 14 }}>
-                      <strong>{it.title}</strong>
-                      <div style={{ marginTop: 6 }}>
-                        <SummaryMarkdown text={it.body} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <SummaryMarkdown text={summaryPayload.notice} />
-              )}
-            </article>
-          </>
-        ) : null}
       </section>
-    </main>
+
+      <section className="filter-row">
+        <button
+          type="button"
+          className="btn-primary small"
+          disabled={genLoading || loading}
+          onClick={() => void generateMySummary()}
+        >
+          {genLoading ? '…' : '+ generate now'}
+        </button>
+        <span className="spacer" />
+        <Link to="/settings" className="btn-ghost">
+          ⚙ tune settings
+        </Link>
+      </section>
+
+      {fetchError ? (
+        <p
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            background: 'oklch(0.70 0.16 25 / 0.12)',
+            border: '1px solid oklch(0.40 0.10 25)',
+            borderRadius: 8,
+            fontSize: 13,
+            color: 'oklch(0.78 0.14 25)',
+          }}
+        >
+          {fetchError}
+        </p>
+      ) : null}
+
+      {loading && !summaryPayload ? (
+        <p className="dim small" style={{ marginBottom: 12 }}>
+          Loading summaries…
+        </p>
+      ) : null}
+
+      {summaryPayload ? (
+        <>
+          <p className="dim small" style={{ marginBottom: 12 }}>
+            {summaryPayload.total_pages > 0 ? (
+              <>
+                page {summaryPayload.page} / {summaryPayload.total_pages} · {summaryPayload.total}{' '}
+                total
+                {summaryPayload.generated_at ? (
+                  <>
+                    {' '}
+                    · latest on page{' '}
+                    <time dateTime={summaryPayload.generated_at}>
+                      {formatGeneratedAt(summaryPayload.generated_at)}
+                    </time>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>0 rows in public.summaries</>
+            )}
+          </p>
+          {summaryPayload.total_pages > 1 ? (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn-ghost small"
+                disabled={loading || summaryPayload.page <= 1}
+                onClick={() => void fetchSummaryPage(summaryPayload.page - 1)}
+              >
+                ← prev
+              </button>
+              <button
+                type="button"
+                className="btn-ghost small"
+                disabled={loading || summaryPayload.page >= summaryPayload.total_pages}
+                onClick={() => void fetchSummaryPage(summaryPayload.page + 1)}
+              >
+                next →
+              </button>
+            </div>
+          ) : null}
+
+          {summaryPayload.items.length > 0 ? (
+            <div className="bullet-list">
+              {summaryPayload.items.map((it) => (
+                <div
+                  key={it.id}
+                  className="bullet bullet--clickable"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open summary ${it.id}: ${it.title}`}
+                  onClick={() => setDetailItem(it)}
+                  onKeyDown={(e) => openDetailFromKey(e, it, setDetailItem)}
+                >
+                  <span className="bullet-idx">{it.id}</span>
+                  <span className="bullet-tag">#summary</span>
+                  <div className="bullet-body">
+                    <div className="bullet-title">{it.title}</div>
+                    <div className="bullet-tldr dim">{previewPlain(it.body)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="panel" style={{ marginTop: 8 }}>
+              <SummaryMarkdown text={summaryPayload.notice} />
+            </div>
+          )}
+        </>
+      ) : null}
+
+      {detailItem ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setDetailItem(null)}
+        >
+          <div
+            className="modal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="modal-head">
+              <div className="modal-title-block">
+                <h2 id="summary-modal-title" className="modal-title">
+                  {detailItem.title}
+                </h2>
+                <div className="modal-id mono">{detailItem.id}</div>
+              </div>
+              <button
+                ref={modalCloseRef}
+                type="button"
+                className="btn-ghost small"
+                aria-label="Close"
+                onClick={() => setDetailItem(null)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="modal-body">
+              <SummaryMarkdown text={detailItem.body} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 };
 

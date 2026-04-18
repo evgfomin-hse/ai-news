@@ -1,40 +1,57 @@
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import type { CSSProperties, FC } from 'react';
+import type { FC } from 'react';
 
-const buttonStyle: CSSProperties = {
-  padding: '6px 12px',
-  borderRadius: 6,
-  border: '1px solid #ccc',
-  background: '#fff',
-  cursor: 'pointer',
-};
+function Logo() {
+  return (
+    <div className="logo" aria-label="AI News">
+      <span className="logo-bracket">[</span>
+      <span className="logo-a">AI</span>
+      <span className="logo-dot">·</span>
+      <span className="logo-n">news</span>
+      <span className="logo-bracket">]</span>
+    </div>
+  );
+}
 
 const Header: FC = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
+
+  const crumb = !user ? 'signin' : location.pathname === '/settings' ? 'settings' : 'home';
 
   return (
-    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid #eee' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img
-          src={user?.avatarUrl as string || '/default-avatar.png'}
-          alt="avatar"
-          style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#f3f3f3' }}
-        />
-        <div>
-          {user ? (
-            <div style={{ fontWeight: 600 }}>{user.username as string}</div>
-          ) : (
-            <div style={{ color: '#666' }}>Not signed in</div>
-          )}
-        </div>
+    <header className="topbar">
+      <div className="topbar-left">
+        <Logo />
+        <span className="crumb">
+          <span className="dim">~/</span>
+          <span className="ln">ai-news</span>
+          <span className="dim">/</span>
+          <span className="ln">{crumb}</span>
+        </span>
       </div>
-
-      <div>
+      <div className="topbar-right">
         {user ? (
-          <button type="button" onClick={() => void logout()} style={buttonStyle}>Logout</button>
-        ) : (
-          <a href="/login"><button style={buttonStyle}>Login</button></a>
-        )}
+          <>
+            <img
+              src={(user.avatarUrl as string) || '/default-avatar.png'}
+              alt=""
+              width={28}
+              height={28}
+              style={{ borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }}
+            />
+            <Link to="/" className="btn-ghost">
+              home
+            </Link>
+            <Link to="/settings" className="btn-ghost">
+              settings
+            </Link>
+            <button type="button" className="btn-ghost" onClick={() => void logout()}>
+              logout
+            </button>
+          </>
+        ) : null}
       </div>
     </header>
   );

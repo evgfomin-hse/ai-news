@@ -6,7 +6,6 @@ import {
   type ReactNode,
 } from 'react';
 import { apiUrl } from './api';
-import Header from './components/Header';
 
 type User = Record<string, unknown> & {
   id?: string;
@@ -91,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
-      <Header />
       {children}
     </AuthContext.Provider>
   );

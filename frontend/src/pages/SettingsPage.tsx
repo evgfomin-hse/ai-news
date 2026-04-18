@@ -36,16 +36,24 @@ type TransportMe = {
   telegramChatId: string | null;
 };
 
+type InterestMe = {
+  interestId: number | null;
+  interests: string;
+};
+
 const HELLO_POLL_MS = 2500;
 const HELLO_MAX_POLLS = 48;
 
 const SettingsPage: FC = () => {
   const { user } = useAuth();
   const [transport, setTransport] = useState<TransportMe | null>(null);
+  const [interestRow, setInterestRow] = useState<InterestMe | null>(null);
+  const [interestsDraft, setInterestsDraft] = useState('');
   const [tokenInput, setTokenInput] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingInterests, setSavingInterests] = useState(false);
   const [testing, setTesting] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -70,6 +78,18 @@ const SettingsPage: FC = () => {
     setChatInput(data.telegramChatId ?? '');
   }, []);
 
+  const loadInterests = useCallback(async () => {
+    const r = await fetch(apiUrl('/interests/me'), { credentials: 'include' });
+    if (!r.ok) {
+      setInterestRow(null);
+      setInterestsDraft('');
+      return;
+    }
+    const data = (await r.json()) as InterestMe;
+    setInterestRow(data);
+    setInterestsDraft(data.interests ?? '');
+  }, []);
+
   const clearHelloPoll = useCallback(() => {
     if (pollTimerRef.current != null) {
       clearInterval(pollTimerRef.current);
@@ -85,7 +105,7 @@ const SettingsPage: FC = () => {
     void (async () => {
       setLoading(true);
       try {
-        await loadTransport();
+        await Promise.all([loadTransport(), loadInterests()]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -93,7 +113,7 @@ const SettingsPage: FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [loadTransport]);
+  }, [loadTransport, loadInterests]);
 
   useEffect(() => () => clearHelloPoll(), [clearHelloPoll]);
 
@@ -283,6 +303,32 @@ const SettingsPage: FC = () => {
     }
   };
 
+  const saveInterests = async () => {
+    setSavingInterests(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const r = await fetch(apiUrl('/interests/me'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ interests: interestsDraft }),
+      });
+      if (!r.ok) {
+        const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
+        throw new Error(parseDetail(j));
+      }
+      const data = (await r.json()) as InterestMe;
+      setInterestRow(data);
+      setInterestsDraft(data.interests ?? '');
+      setMessage('Interests saved.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSavingInterests(false);
+    }
+  };
+
   const sendTestMessage = async () => {
     setSending(true);
     setError(null);
@@ -325,6 +371,59 @@ const SettingsPage: FC = () => {
         <dt style={{ fontWeight: 600, marginTop: 12 }}>Email</dt>
         <dd style={{ margin: '4px 0 0' }}>{user?.email ?? '—'}</dd>
       </dl>
+
+      <section
+        style={{
+          paddingTop: 24,
+          borderTop: '1px solid #eee',
+        }}
+      >
+        <h2 style={{ fontSize: '1.15rem', marginBottom: 8 }}>Interests</h2>
+        <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>
+          Stored in the coursework <code>interests</code> table (
+          <code>interests</code> text column).
+        </p>
+        {loading ? (
+          <p style={{ color: '#666' }}>Loading…</p>
+        ) : (
+          <>
+            {interestRow?.interestId != null ? (
+              <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
+                Row id {interestRow.interestId}
+              </p>
+            ) : null}
+            <textarea
+              value={interestsDraft}
+              onChange={(e) => setInterestsDraft(e.target.value)}
+              rows={5}
+              placeholder="e.g. machine learning, hiking, cinema…"
+              style={{
+                width: '100%',
+                maxWidth: 520,
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid #ccc',
+                fontSize: 14,
+                boxSizing: 'border-box',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                style={btn}
+                disabled={
+                  savingInterests ||
+                  interestsDraft === (interestRow?.interests ?? '')
+                }
+                onClick={() => void saveInterests()}
+              >
+                {savingInterests ? 'Saving…' : 'Save interests'}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
 
       <section
         style={{

@@ -1,0 +1,118 @@
+/* Markdown inside the Home summary card */
+#root > main > section > article {
+  font-size: 15px;
+}
+
+#root > main > section > article :first-child {
+  margin-top: 0;
+}
+
+#root > main > section > article :last-child {
+  margin-bottom: 0;
+}
+
+#root > main > section > article p {
+  margin: 0.65em 0;
+  line-height: 1.55;
+}
+
+#root > main > section > article h1,
+#root > main > section > article h2,
+#root > main > section > article h3,
+#root > main > section > article h4 {
+  margin: 1em 0 0.4em;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+#root > main > section > article h1 {
+  font-size: 1.35rem;
+}
+
+#root > main > section > article h2 {
+  font-size: 1.2rem;
+}
+
+#root > main > section > article h3 {
+  font-size: 1.05rem;
+}
+
+#root > main > section > article ul,
+#root > main > section > article ol {
+  margin: 0.5em 0;
+  padding-left: 1.35em;
+}
+
+#root > main > section > article li {
+  margin: 0.25em 0;
+}
+
+#root > main > section > article blockquote {
+  margin: 0.65em 0;
+  padding: 0.35em 0 0.35em 0.85em;
+  border-left: 3px solid #ccc;
+  color: #444;
+}
+
+#root > main > section > article pre {
+  margin: 0.65em 0;
+  padding: 12px 14px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.45;
+  background: #f0f0f0;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}
+
+#root > main > section > article code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+#root > main > section > article p code,
+#root > main > section > article li code {
+  padding: 0.12em 0.35em;
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+#root > main > section > article pre code {
+  padding: 0;
+  background: none;
+}
+
+#root > main > section > article a {
+  color: #1565c0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#root > main > section > article a:hover {
+  color: #0d47a1;
+}
+
+#root > main > section > article hr {
+  margin: 1em 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+#root > main > section > article table {
+  width: 100%;
+  margin: 0.65em 0;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+#root > main > section > article th,
+#root > main > section > article td {
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+#root > main > section > article th {
+  background: #f3f3f3;
+  font-weight: 600;
+}

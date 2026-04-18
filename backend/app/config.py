@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-change-me"
     jwt_algorithm: str = "HS256"
 
+    # When set, POST /auth/e2e/bootstrap-session (header X-E2E-Bootstrap-Secret) creates a
+    # real DB user + HttpOnly session JWT (same path as Google login). Leave empty in production.
+    e2e_bootstrap_secret: str = ""
+
+    # Nightly job: insert one `summaries` row per user at 00:00 in `summary_schedule_timezone` (IANA, e.g. UTC).
+    enable_summary_nightly_scheduler: bool = True
+    summary_schedule_timezone: str = "UTC"
+
+    # When set, POST /tasks/summary/run-bulk (header X-Summary-Job-Secret) runs the same job as midnight. Empty = route disabled.
+    summary_job_secret: str = ""
+
     # Comma-separated browser origins allowed to call the API (e.g. http://localhost:5173).
     cors_origins: str = "http://localhost:5173"
 

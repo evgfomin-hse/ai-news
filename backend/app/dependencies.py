@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal
 from app.models import User
+from app.services.summary import PostgresSummaryService, SummaryService
 
 bearer_optional = HTTPBearer(auto_error=False)
 
@@ -20,6 +21,11 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def get_summary_service(db: Annotated[Session, Depends(get_db)]) -> SummaryService:
+    """Summary rows from coursework `public.summaries` (Postgres)."""
+    return PostgresSummaryService(db)
 
 
 def get_session_jwt(

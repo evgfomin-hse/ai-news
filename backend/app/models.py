@@ -24,6 +24,33 @@ class User(Base):
     )
 
 
+class Interest(Base):
+    """Coursework `public.interests` — free-text interests per user."""
+
+    __tablename__ = "interests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    interests: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+
+
+class Summary(Base):
+    """Coursework `public.summaries` — markdown digest rows per user."""
+
+    __tablename__ = "summaries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+
+
 class Transport(Base):
     """Coursework `public.transports` — per-user transport config in `data` JSONB."""
 

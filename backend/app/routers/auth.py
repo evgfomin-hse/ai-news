@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from pydantic import BaseModel, Field
@@ -133,3 +133,39 @@ def google_login(
 def logout(response: Response) -> dict[str, bool]:
     _clear_session_cookie(response)
     return {"ok": True}
+
+
+E2E_GOOGLE_SUBJECT = "e2e-playwright-google-subject"
+E2E_USER_EMAIL = "e2e-playwright@example.invalid"
+
+
+@router.post("/e2e/bootstrap-session", response_model=GoogleLoginJson)
+def e2e_bootstrap_session(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    response: Response,
+) -> GoogleLoginJson:
+    """Real session + DB user for browser e2e. Disabled unless E2E_BOOTSTRAP_SECRET is set."""
+    configured = settings.e2e_bootstrap_secret.strip()
+    if not configured:
+        raise HTTPException(status_code=404, detail="Not found")
+    if request.headers.get("x-e2e-bootstrap-secret") != configured:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = get_or_create_user(
+        db,
+        google_id=E2E_GOOGLE_SUBJECT,
+        name="E2E User",
+        picture=None,
+        email=E2E_USER_EMAIL,
+    )
+    app_token = _issue_app_token(str(user.id), user.name or "", user.picture)
+    _set_session_cookie(response, app_token)
+    return GoogleLoginJson(
+        user=UserOut(
+            id=str(user.id),
+            username=user.name or "",
+            email=user.email,
+            avatarUrl=user.picture,
+        ),
+    )

@@ -5,9 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine
-from app.models import Base, User  # noqa: F401 — register models
+from app.models import Base, Transport, User  # noqa: F401 — register models
 from app.routers.api import router as api_router
 from app.routers.auth import router as auth_router
+from app.routers.transports import router as transports_router
 from app.routers.users import router as users_router
 
 
@@ -30,4 +31,5 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(transports_router)
 app.include_router(api_router)

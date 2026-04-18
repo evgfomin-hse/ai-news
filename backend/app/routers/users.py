@@ -42,11 +42,14 @@ def patch_me(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMeOut:
+    changed = False
     if body.name is not None:
         user.name = body.name
+        changed = True
     if body.picture is not None:
         user.picture = body.picture
-    if body.name is not None or body.picture is not None:
+        changed = True
+    if changed:
         db.add(user)
         db.commit()
         db.refresh(user)

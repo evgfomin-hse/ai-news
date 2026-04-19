@@ -1,4 +1,4 @@
-export { type ApiErrorBody } from './client';
+export { type ApiErrorBody, parseFastApiDetail } from './client';
 export {
   getSessionUser,
   postGoogleLogin,

@@ -35,7 +35,7 @@ const Header: FC = () => {
         {user ? (
           <>
             <img
-              src={(user.avatarUrl as string) || '/default-avatar.png'}
+              src={user.avatarUrl || '/default-avatar.png'}
               alt=""
               width={28}
               height={28}
@@ -47,7 +47,7 @@ const Header: FC = () => {
             <Link to="/settings" className="btn-ghost">
               settings
             </Link>
-            <button type="button" className="btn-ghost" onClick={() => void logout()}>
+            <button type="button" className="btn-ghost" onClick={() => logout()}>
               logout
             </button>
           </>

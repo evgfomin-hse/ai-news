@@ -6,8 +6,19 @@ import {
   useState,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { apiUrl } from '../api';
-import { useAuth } from '../AuthContext';
+import {
+  getInterestMe,
+  getTransportMe,
+  parseFastApiDetail,
+  patchInterestMe,
+  patchTransportMe,
+  postTelegramCaptureHello,
+  postTelegramTest,
+  postTransportSendMessage,
+  type InterestMe,
+  type TransportMe,
+} from '../../shared/api';
+import { useAuth } from '../../features/Auth/AuthProvider';
 
 function Panel({
   title,
@@ -42,21 +53,10 @@ function Row({ k, v }: { k: string; v: ReactNode }) {
   );
 }
 
-type TransportMe = {
-  transportId: number | null;
-  telegramConfigured: boolean;
-  telegramChatId: string | null;
-};
-
-type InterestMe = {
-  interestId: number | null;
-  interests: string;
-};
-
 const HELLO_POLL_MS = 2500;
 const HELLO_MAX_POLLS = 48;
 
-const SettingsPage: FC = () => {
+const Settings: FC = () => {
   const { user } = useAuth();
   const [transport, setTransport] = useState<TransportMe | null>(null);
   const [interestRow, setInterestRow] = useState<InterestMe | null>(null);
@@ -80,24 +80,22 @@ const SettingsPage: FC = () => {
   const pollAttemptsRef = useRef(0);
 
   const loadTransport = useCallback(async () => {
-    const r = await fetch(apiUrl('/transports/me'), { credentials: 'include' });
-    if (!r.ok) {
+    const data = await getTransportMe();
+    if (!data) {
       setTransport(null);
       return;
     }
-    const data = (await r.json()) as TransportMe;
     setTransport(data);
     setChatInput(data.telegramChatId ?? '');
   }, []);
 
   const loadInterests = useCallback(async () => {
-    const r = await fetch(apiUrl('/interests/me'), { credentials: 'include' });
-    if (!r.ok) {
+    const data = await getInterestMe();
+    if (!data) {
       setInterestRow(null);
       setInterestsDraft('');
       return;
     }
-    const data = (await r.json()) as InterestMe;
     setInterestRow(data);
     setInterestsDraft(data.interests ?? '');
   }, []);
@@ -129,33 +127,9 @@ const SettingsPage: FC = () => {
 
   useEffect(() => () => clearHelloPoll(), [clearHelloPoll]);
 
-  const parseDetail = (j: { detail?: unknown }): string => {
-    const d = j.detail;
-    if (typeof d === 'string') return d;
-    if (Array.isArray(d)) {
-      return d
-        .map((x) =>
-          typeof x === 'object' && x && 'msg' in x
-            ? String((x as { msg: string }).msg)
-            : String(x),
-        )
-        .join(', ');
-    }
-    return 'Request failed';
-  };
-
   const patchTransport = async (body: Record<string, string>) => {
-    const r = await fetch(apiUrl('/transports/me'), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) {
-      const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
-      throw new Error(parseDetail(j));
-    }
-    setTransport((await r.json()) as TransportMe);
+    const next = await patchTransportMe(body);
+    setTransport(next);
   };
 
   const saveToken = async () => {
@@ -208,20 +182,11 @@ const SettingsPage: FC = () => {
 
   /** `retry` = keep polling; `done` = stop (linked, fatal error, or timeout). */
   const pollCaptureHelloOnce = useCallback(async (): Promise<'retry' | 'done'> => {
-    const r = await fetch(apiUrl('/transports/me/telegram-capture-hello'), {
-      method: 'POST',
-      credentials: 'include',
-    });
-    const j = (await r.json().catch(() => ({}))) as {
-      linked?: boolean;
-      chatId?: string;
-      hint?: string;
-      detail?: unknown;
-    };
+    const { response: r, body: j } = await postTelegramCaptureHello();
 
     if (r.status === 409 || !r.ok) {
       clearHelloPoll();
-      setError(parseDetail(j));
+      setError(parseFastApiDetail(j));
       return 'done';
     }
 
@@ -268,18 +233,7 @@ const SettingsPage: FC = () => {
     setMessage(null);
     const hadChatId = Boolean(transport?.telegramChatId);
     try {
-      const r = await fetch(apiUrl('/transports/me/telegram-test'), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const j = (await r.json().catch(() => ({}))) as {
-        botUsername?: string;
-        botId?: number;
-        detail?: unknown;
-      };
-      if (!r.ok) {
-        throw new Error(parseDetail(j));
-      }
+      const j = await postTelegramTest();
 
       if (hadChatId) {
         setMessage(
@@ -320,17 +274,7 @@ const SettingsPage: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const r = await fetch(apiUrl('/interests/me'), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ interests: interestsDraft }),
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
-        throw new Error(parseDetail(j));
-      }
-      const data = (await r.json()) as InterestMe;
+      const data = await patchInterestMe(interestsDraft);
       setInterestRow(data);
       setInterestsDraft(data.interests ?? '');
       setMessage('Interests saved.');
@@ -346,21 +290,7 @@ const SettingsPage: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const r = await fetch(apiUrl('/transports/me/send-message'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          text: 'Test message from HSE repos.',
-        }),
-      });
-      const j = (await r.json().catch(() => ({}))) as {
-        telegramMessageId?: number;
-        detail?: unknown;
-      };
-      if (!r.ok) {
-        throw new Error(parseDetail(j));
-      }
+      const j = await postTransportSendMessage('Test message from HSE repos.');
       setMessage(
         `Message sent (Telegram message id ${j.telegramMessageId ?? '?'})`,
       );
@@ -603,4 +533,4 @@ const SettingsPage: FC = () => {
   );
 };
 
-export default SettingsPage;
+export default Settings;

@@ -1,12 +1,12 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import type { FC } from 'react';
 import { useEffect, useState } from 'react';
-import { apiUrl } from '../api';
-import { useAuth } from '../AuthContext';
+import { postGoogleLogin } from '../../shared/api';
+import { useAuth } from '../../features/Auth/AuthProvider';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-const LoginPage: FC = () => {
+const Login: FC = () => {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,25 +28,16 @@ const LoginPage: FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(apiUrl('/auth/google-login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ token: credentialResponse.credential }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
+      const token = credentialResponse.credential;
+      if (!token) throw new Error('Login failed');
+      const data = await postGoogleLogin(token);
 
       login({
         user: {
           id: data.user.id,
           username: data.user.username,
           email: data.user.email,
-          avatarUrl: data.user.avatarUrl,
+          avatarUrl: data.user.avatarUrl ?? undefined,
         },
       });
     } catch (err) {
@@ -183,4 +174,4 @@ const LoginPage: FC = () => {
   );
 };
 
-export default LoginPage;
+export default Login;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../../features/Auth/AuthProvider';
 
 export default function StatusBar() {
   const { user } = useAuth();

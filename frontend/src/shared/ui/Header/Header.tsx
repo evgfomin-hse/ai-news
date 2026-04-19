@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../../features/Auth/AuthProvider';
 import type { FC } from 'react';
 
 function Logo() {

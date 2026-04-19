@@ -1,25 +1,25 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './AuthContext';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import SettingsPage from './pages/SettingsPage';
+import { useAuth } from './features/Auth/AuthProvider';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Settings from './pages/Settings';
 
 export default function App() {
   const { user } = useAuth();
 
   if (!user) {
     return (
-      <main className="main">
-        <LoginPage />
+      <main>
+        <Login />
       </main>
     );
   }
 
   return (
-    <main className="main">
+    <main>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>

@@ -4,9 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { apiUrl } from '../api';
-import { useAuth } from '../AuthContext';
-import './homeSummaryArticle.css';
+import {
+  getUserSummaryPage,
+  postGenerateUserSummary,
+  type SummaryListItem,
+  type UserSummaryResponse,
+} from '../../shared/api';
+import { useAuth } from '../../features/Auth/AuthProvider';
+import '../homeSummaryArticle.css';
 
 /** Rows per page on home (matches “6 bullets” layout). */
 const PAGE_SIZE = 6;
@@ -15,18 +20,6 @@ const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => (
     <a {...props} target="_blank" rel="noreferrer noopener" />
   ),
-};
-
-type SummaryListItem = { id: string; title: string; body: string };
-
-type UserSummaryResponse = {
-  items: SummaryListItem[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-  generated_at: string | null;
-  notice: string;
 };
 
 const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
@@ -55,7 +48,7 @@ function openDetailFromKey(e: KeyboardEvent, it: SummaryListItem, open: (v: Summ
   open(it);
 }
 
-const HomePage: FC = () => {
+const Home: FC = () => {
   const { user } = useAuth();
   const [summaryPayload, setSummaryPayload] = useState<UserSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -68,25 +61,8 @@ const HomePage: FC = () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const qs = new URLSearchParams({
-        page: String(page),
-        page_size: String(PAGE_SIZE),
-      });
-      const r = await fetch(apiUrl(`/users/me/summary?${qs.toString()}`), {
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
-        const d = j.detail;
-        const msg =
-          typeof d === 'string'
-            ? d
-            : Array.isArray(d)
-              ? d.map((x) => String(x)).join(', ')
-              : 'Could not load summary';
-        throw new Error(msg);
-      }
-      setSummaryPayload((await r.json()) as UserSummaryResponse);
+      const payload = await getUserSummaryPage(page, PAGE_SIZE);
+      setSummaryPayload(payload);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Could not load summary');
     } finally {
@@ -117,21 +93,7 @@ const HomePage: FC = () => {
     setGenLoading(true);
     setFetchError(null);
     try {
-      const r = await fetch(apiUrl('/users/me/summary/generate'), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
-        const d = j.detail;
-        const msg =
-          typeof d === 'string'
-            ? d
-            : Array.isArray(d)
-              ? d.map((x) => String(x)).join(', ')
-              : 'Could not generate summary';
-        throw new Error(msg);
-      }
+      await postGenerateUserSummary();
       await fetchSummaryPage(1);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Could not generate summary');
@@ -316,4 +278,4 @@ const HomePage: FC = () => {
   );
 };
 
-export default HomePage;
+export default Home;

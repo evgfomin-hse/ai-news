@@ -1,57 +1,81 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../features/Auth/AuthProvider';
 import type { FC } from 'react';
+import styles from './style.module.css';
 
-function Logo() {
-  return (
-    <div className="logo" aria-label="AI News">
-      <span className="logo-bracket">[</span>
-      <span className="logo-a">AI</span>
-      <span className="logo-dot">·</span>
-      <span className="logo-n">news</span>
-      <span className="logo-bracket">]</span>
-    </div>
-  );
+function formatIssueDate(d: Date): string {
+  return d
+    .toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+    .toUpperCase();
 }
 
 const Header: FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const isSettings = location.pathname === '/settings';
 
-  const crumb = !user ? 'signin' : location.pathname === '/settings' ? 'settings' : 'home';
+  if (!user) {
+    return (
+      <header className={`${styles.topbar} ${styles.topbarEditorial}`}>
+        <div className={styles.left}>
+          <div className={styles.logoEd} aria-label="AI News">
+            ai<span className={styles.dotEd}>.</span>news
+          </div>
+          <div className={styles.metaEd}>Sign in</div>
+        </div>
+      </header>
+    );
+  }
+
+  if (isSettings) {
+    return (
+      <header className={`${styles.topbar} ${styles.topbarEditorial}`}>
+        <div className={styles.left}>
+          <Link to="/" className={styles.logoEd} aria-label="AI News home">
+            ai<span className={styles.dotEd}>.</span>news
+          </Link>
+          <div className={styles.metaEd}>Your account</div>
+        </div>
+        <div className={styles.right}>
+          <button type="button" className={`${styles.pill} ${styles.pillGhost}`} onClick={() => logout()}>
+            Logout
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  const issueLine = `ISSUE · ${formatIssueDate(new Date())}`;
 
   return (
-    <header className="topbar">
-      <div className="topbar-left">
-        <Logo />
-        <span className="crumb">
-          <span className="dim">~/</span>
-          <span className="ln">ai-news</span>
-          <span className="dim">/</span>
-          <span className="ln">{crumb}</span>
-        </span>
-      </div>
-      <div className="topbar-right">
-        {user ? (
-          <>
+    <header className={`${styles.topbar} ${styles.topbarSwiss}`}>
+      <div className={styles.gridSw}>
+        <Link to="/" className={styles.logoSw} aria-label="AI News home">
+          AI<span className={styles.dotSw}>/</span>NEWS
+        </Link>
+        <div className={styles.centerSw}>{issueLine}</div>
+        <div className={styles.rightSwiss}>
+          {user.avatarUrl ? (
             <img
-              src={user.avatarUrl || '/default-avatar.png'}
+              src={user.avatarUrl}
               alt=""
               width={28}
               height={28}
-              style={{ borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }}
+              className={`${styles.avatar} ${styles.avatarSw}`}
             />
-            <Link to="/" className="btn-ghost">
-              home
-            </Link>
-            <Link to="/settings" className="btn-ghost">
-              settings
-            </Link>
-            <button type="button" className="btn-ghost" onClick={() => logout()}>
-              logout
-            </button>
-          </>
-        ) : null}
+          ) : null}
+          <Link to="/settings" className={styles.pillSwiss}>
+            SETTINGS
+          </Link>
+          <button type="button" className={`${styles.pillSwiss} ${styles.pillSwissSolid}`} onClick={() => logout()}>
+            LOGOUT
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -1,7 +1,6 @@
 import type { Components } from 'react-markdown';
 import type { FC, KeyboardEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -11,7 +10,7 @@ import {
   type UserSummaryResponse,
 } from '../../shared/api';
 import { useAuth } from '../../features/Auth/AuthProvider';
-import '../homeSummaryArticle.css';
+import styles from './style.module.css';
 
 /** Rows per page on home (matches “6 bullets” layout). */
 const PAGE_SIZE = 6;
@@ -23,7 +22,7 @@ const markdownComponents: Components = {
 };
 
 const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
-  <div className="summary-md">
+  <div className={styles.summaryMd}>
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
       {text}
     </ReactMarkdown>
@@ -33,6 +32,16 @@ const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
 function formatGeneratedAt(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function formatListDate(iso: string): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /** One-line preview for bullet rows (markdown shown in empty-state only). */
@@ -102,173 +111,197 @@ const Home: FC = () => {
     }
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const listDateLabel = formatListDate(todayIso);
   const name = String(user?.username ?? 'user');
+  const total = summaryPayload?.total ?? 0;
+  const page = summaryPayload?.page ?? 1;
+  const totalPages = summaryPayload?.total_pages ?? 0;
+  const readyLabel =
+    summaryPayload && totalPages > 0
+      ? `${summaryPayload.items.length} / ${PAGE_SIZE} on this page`
+      : loading && !summaryPayload
+        ? '…'
+        : '0 rows';
 
   return (
-    <div className="home">
-      <section className="home-head">
-        <div>
-          <div className="kicker">
-            <span className="accent">●</span> brief · {today}
+    <div className={styles.page}>
+      <div className={styles.screen}>
+        <div className={styles.screenHead}>
+          <div className={styles.dots} aria-hidden>
+            <span className={styles.dotWin} />
+            <span className={styles.dotWin} />
+            <span className={styles.dotWin} />
           </div>
-          <h2 className="h2">
-            good morning, <span className="accent">{name}</span>
-            <span className="dim h2-dim"> — summaries from your coursework table.</span>
-          </h2>
-          <div className="meta-row">
-            <span className="pill">
-              <span className="accent">{summaryPayload?.total ?? '—'}</span> rows
-            </span>
-            <span className="pill">
-              <span className="accent">{PAGE_SIZE}</span> per page
-            </span>
-            <span className="pill">
-              nightly <span className="accent">00:00</span> UTC
-            </span>
+          <span className={styles.url}>ainews.app</span>
+          <span className={styles.badge}>HOME</span>
+        </div>
+
+        <div className={styles.masthead}>
+          <div className={styles.mastCell}>
+            <h1 className={styles.mastTitle}>
+              Good morning, <b>{name}.</b>
+            </h1>
+          </div>
+          <div className={styles.mastCell}>
+            <div className={styles.kvLabel}>
+              TODAY<u>{total} stories</u>
+            </div>
+          </div>
+          <div className={styles.mastCell}>
+            <div className={styles.kvLabel}>
+              ON PAGE<u>{summaryPayload?.items.length ?? (loading ? '…' : 0)}</u>
+            </div>
+          </div>
+          <div className={styles.mastCell}>
+            <div className={styles.kvLabel}>
+              NEXT DROP<u>00:00 UTC</u>
+            </div>
           </div>
         </div>
-      </section>
 
-      <section className="filter-row">
-        <button
-          type="button"
-          className="btn-primary small"
-          disabled={genLoading || loading}
-          onClick={() => void generateMySummary()}
-        >
-          {genLoading ? '…' : '+ generate now'}
-        </button>
-        <span className="spacer" />
-        <Link to="/settings" className="btn-ghost">
-          ⚙ tune settings
-        </Link>
-      </section>
+        {fetchError ? <p className={styles.error}>{fetchError}</p> : null}
 
-      {fetchError ? (
-        <p
-          style={{
-            marginBottom: 16,
-            padding: 12,
-            background: 'oklch(0.70 0.16 25 / 0.12)',
-            border: '1px solid oklch(0.40 0.10 25)',
-            borderRadius: 8,
-            fontSize: 13,
-            color: 'oklch(0.78 0.14 25)',
-          }}
-        >
-          {fetchError}
-        </p>
-      ) : null}
+        {loading && !summaryPayload ? (
+          <p className={`${styles.metaLine} ${styles.emptyPanel}`}>Loading summaries…</p>
+        ) : null}
 
-      {loading && !summaryPayload ? (
-        <p className="dim small" style={{ marginBottom: 12 }}>
-          Loading summaries…
-        </p>
-      ) : null}
-
-      {summaryPayload ? (
-        <>
-          <p className="dim small" style={{ marginBottom: 12 }}>
-            {summaryPayload.total_pages > 0 ? (
-              <>
-                page {summaryPayload.page} / {summaryPayload.total_pages} · {summaryPayload.total}{' '}
-                total
-                {summaryPayload.generated_at ? (
-                  <>
-                    {' '}
-                    · latest on page{' '}
-                    <time dateTime={summaryPayload.generated_at}>
-                      {formatGeneratedAt(summaryPayload.generated_at)}
-                    </time>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <>0 rows in public.summaries</>
-            )}
-          </p>
-          {summaryPayload.total_pages > 1 ? (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn-ghost small"
-                disabled={loading || summaryPayload.page <= 1}
-                onClick={() => void fetchSummaryPage(summaryPayload.page - 1)}
-              >
-                ← prev
-              </button>
-              <button
-                type="button"
-                className="btn-ghost small"
-                disabled={loading || summaryPayload.page >= summaryPayload.total_pages}
-                onClick={() => void fetchSummaryPage(summaryPayload.page + 1)}
-              >
-                next →
-              </button>
-            </div>
-          ) : null}
-
-          {summaryPayload.items.length > 0 ? (
-            <div className="bullet-list">
-              {summaryPayload.items.map((it) => (
-                <div
-                  key={it.id}
-                  className="bullet bullet--clickable"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open summary ${it.id}: ${it.title}`}
-                  onClick={() => setDetailItem(it)}
-                  onKeyDown={(e) => openDetailFromKey(e, it, setDetailItem)}
-                >
-                  <span className="bullet-idx">{it.id}</span>
-                  <span className="bullet-tag">#summary</span>
-                  <div className="bullet-body">
-                    <div className="bullet-title">{it.title}</div>
-                    <div className="bullet-tldr dim">{previewPlain(it.body)}</div>
+        {summaryPayload ? (
+          <>
+            <div className={styles.feed}>
+              <div className={styles.grp}>
+                <div className={styles.grpHead}>
+                  <div className={styles.grpA}>
+                    01 — <em>TODAY</em>
                   </div>
+                  <div className={styles.grpB}>{listDateLabel}</div>
+                  <div className={styles.grpC}>{readyLabel}</div>
                 </div>
-              ))}
+
+                {summaryPayload.items.length > 0 ? (
+                  summaryPayload.items.map((it, idx) => (
+                    <div
+                      key={it.id}
+                      className={styles.rowItem}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open summary ${it.id}: ${it.title}`}
+                      onClick={() => setDetailItem(it)}
+                      onKeyDown={(e) => openDetailFromKey(e, it, setDetailItem)}
+                    >
+                      <div className={styles.rowN}>
+                        #<b>{String(idx + 1 + (page - 1) * PAGE_SIZE).padStart(2, '0')}</b>
+                      </div>
+                      <div>
+                        <h2 className={styles.rowTitle}>{it.title}</h2>
+                        <p className={styles.rowBody}>{previewPlain(it.body)}</p>
+                      </div>
+                      <div className={styles.rowMeta}>
+                        <span>SUMMARY</span>
+                        ROW {it.id}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.emptyPanel}>
+                    <SummaryMarkdown text={summaryPayload.notice} />
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="panel" style={{ marginTop: 8 }}>
-              <SummaryMarkdown text={summaryPayload.notice} />
+
+            <div className={styles.homeFoot}>
+              <div className={styles.footCell}>
+                <div className={styles.footLab}>SUMMARY · PAGINATION</div>
+                <div className={styles.footVal}>
+                  {totalPages > 0 ? (
+                    <>
+                      Page {page} of {totalPages} · {total} total
+                      {summaryPayload.generated_at ? (
+                        <>
+                          {' '}
+                          · latest{' '}
+                          <time dateTime={summaryPayload.generated_at}>
+                            {formatGeneratedAt(summaryPayload.generated_at)}
+                          </time>
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>0 rows in public.summaries</>
+                  )}
+                </div>
+              </div>
+              <div className={styles.footCell}>
+                <div className={styles.footLab}>PAGING</div>
+                <div className={`${styles.actions} ${styles.pager}`}>
+                  <button
+                    type="button"
+                    className={styles.swBtn}
+                    disabled={loading || !summaryPayload || summaryPayload.page <= 1}
+                    onClick={() => void fetchSummaryPage(summaryPayload.page - 1)}
+                  >
+                    ← PREV
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.swBtn}
+                    disabled={loading || !summaryPayload || summaryPayload.page >= summaryPayload.total_pages}
+                    onClick={() => void fetchSummaryPage(summaryPayload.page + 1)}
+                  >
+                    NEXT →
+                  </button>
+                </div>
+              </div>
+              <div className={styles.footCell}>
+                <div className={styles.footLab}>ACTION</div>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={`${styles.swBtn} ${styles.swBtnPrime}`}
+                    disabled={genLoading || loading}
+                    onClick={() => void generateMySummary()}
+                  >
+                    {genLoading ? '…' : 'GENERATE NOW →'}
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-        </>
-      ) : null}
+          </>
+        ) : null}
+      </div>
 
       {detailItem ? (
         <div
-          className="modal-backdrop"
+          className={styles.modalBackdrop}
           role="presentation"
           onClick={() => setDetailItem(null)}
         >
           <div
-            className="modal-sheet"
+            className={styles.modalSheet}
             role="dialog"
             aria-modal="true"
             aria-labelledby="summary-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="modal-head">
-              <div className="modal-title-block">
-                <h2 id="summary-modal-title" className="modal-title">
+            <header className={styles.modalHead}>
+              <div className={styles.modalTitleBlock}>
+                <h2 id="summary-modal-title" className={styles.modalTitle}>
                   {detailItem.title}
                 </h2>
-                <div className="modal-id mono">{detailItem.id}</div>
+                <div className={styles.modalId}>{detailItem.id}</div>
               </div>
               <button
                 ref={modalCloseRef}
                 type="button"
-                className="btn-ghost small"
+                className={styles.btnGhost}
                 aria-label="Close"
                 onClick={() => setDetailItem(null)}
               >
                 Close
               </button>
             </header>
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               <SummaryMarkdown text={detailItem.body} />
             </div>
           </div>

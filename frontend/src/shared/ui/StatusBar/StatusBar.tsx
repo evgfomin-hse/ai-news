@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../features/Auth/AuthProvider';
+import styles from './style.module.css';
 
 export default function StatusBar() {
   const { user } = useAuth();
@@ -13,23 +14,23 @@ export default function StatusBar() {
   const utc = `${clock.toISOString().slice(11, 19)} UTC`;
 
   return (
-    <footer className="statusbar">
+    <footer className={styles.bar}>
       <span>
-        <span className="accent">●</span> connected
+        <span className={styles.dot} aria-hidden />
+        <span className={styles.strong}>Connected</span>
       </span>
-      <span className="dim">│</span>
-      <span>transport: telegram</span>
+      <span className={styles.sep}>·</span>
+      <span className={styles.muted}>Transport · Telegram</span>
       {user ? (
         <>
-          <span className="dim">│</span>
-          <span className="hide-sm">
-            session: <span className="ln">{String(user.username ?? 'user')}</span>
+          <span className={styles.sep}>·</span>
+          <span className={`${styles.muted} hide-sm`}>
+            Session · <span className={styles.strong}>{String(user.username ?? 'user')}</span>
           </span>
         </>
       ) : null}
-      <span className="spacer" />
-      <span className="dim">│</span>
-      <span>{utc}</span>
+      <span className={styles.spacer} />
+      <span className={styles.muted}>{utc}</span>
     </footer>
   );
 }

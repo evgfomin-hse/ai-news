@@ -19,36 +19,34 @@ import {
   type TransportMe,
 } from '../../shared/api';
 import { useAuth } from '../../features/Auth/AuthProvider';
+import styles from './style.module.css';
 
 function Panel({
+  lab,
   title,
-  section,
-  sub,
+  hint,
   children,
 }: {
-  title: string;
-  section: string;
-  sub?: string;
+  lab: string;
+  title: ReactNode;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="panel">
-      <header className="panel-head">
-        <span className="panel-sec">§{section}</span>
-        <span className="panel-title">{title}</span>
-        <span className="panel-dots">{'·'.repeat(48)}</span>
-      </header>
-      {sub ? <p className="panel-sub">{sub}</p> : null}
-      <div className="panel-body">{children}</div>
+    <section className={styles.card}>
+      <div className={styles.lab}>{lab}</div>
+      <h3 className={styles.cardTitle}>{title}</h3>
+      {hint ? <p className={styles.hint}>{hint}</p> : null}
+      {children}
     </section>
   );
 }
 
 function Row({ k, v }: { k: string; v: ReactNode }) {
   return (
-    <div className="row">
-      <div className="row-k">{k}</div>
-      <div className="row-v">{v}</div>
+    <div className={styles.kv}>
+      <b className={styles.kvKey}>{k}</b>
+      <span>{v}</span>
     </div>
   );
 }
@@ -301,233 +299,259 @@ const Settings: FC = () => {
     }
   };
 
+  const chatDisplay = transport?.telegramChatId
+    ? transport.telegramChatId.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    : null;
+
   return (
-    <div className="settings">
-      <div className="set-head">
-        <Link to="/" className="btn-ghost">
-          ← back
-        </Link>
-        <h2 className="h2">
-          settings<span className="accent">.</span>config
-        </h2>
-        <span className="spacer" />
-        <span className="dim small hide-sm">coursework · HSE</span>
-      </div>
+    <div className={styles.page}>
+      <div className={styles.screen}>
+        <div className={styles.screenHead}>
+          <div className={styles.dots} aria-hidden>
+            <span className={styles.dotWin} />
+            <span className={styles.dotWin} />
+            <span className={styles.dotWin} />
+          </div>
+          <span className={styles.url}>ainews.app/settings</span>
+          <span className={styles.badge}>SETTINGS</span>
+        </div>
 
-      <div className="set-grid">
-        <Panel title="account" section="01">
-          <Row k="display name" v={user?.username ?? '—'} />
-          <Row k="email" v={user?.email ?? '—'} />
-        </Panel>
+        <div className={styles.body}>
+          <Link to="/" className={styles.back}>
+            ← Back to home
+          </Link>
+          <h1 className={styles.title}>Settings</h1>
+          <p className={styles.lede}>How your letter gets written and where it lands.</p>
 
-        <Panel
-          title="interests"
-          section="02"
-          sub="Stored in public.interests (text column)."
-        >
-          {loading ? (
-            <p className="dim">Loading…</p>
-          ) : (
-            <>
-              {interestRow?.interestId != null ? (
-                <p className="dim small" style={{ marginBottom: 8 }}>
-                  row id {interestRow.interestId}
-                </p>
-              ) : null}
-              <textarea
-                className="input"
-                value={interestsDraft}
-                onChange={(e) => setInterestsDraft(e.target.value)}
-                rows={5}
-                placeholder="e.g. machine learning, hiking, cinema…"
-                style={{ maxWidth: '100%', minHeight: 120, resize: 'vertical' }}
-              />
-              <button
-                type="button"
-                className="btn-primary small"
-                disabled={
-                  savingInterests ||
-                  interestsDraft === (interestRow?.interests ?? '')
-                }
-                onClick={() => void saveInterests()}
-              >
-                {savingInterests ? 'Saving…' : 'Save interests'}
-              </button>
-            </>
-          )}
-        </Panel>
+          <Panel lab="Profile" title="Who's reading">
+            {loading ? (
+              <p className={styles.dim}>Loading…</p>
+            ) : (
+              <>
+                <Row k="Display" v={user?.username ?? '—'} />
+                <Row k="Email" v={user?.email ?? '—'} />
+              </>
+            )}
+          </Panel>
 
-        <Panel
-          title="transport"
-          section="03"
-          sub="Bot token + chat id in transports.data. Token never returned after save."
-        >
-          {helloSession ? (
-            <div className="sidecard" style={{ marginBottom: 16 }}>
-              <strong style={{ display: 'block', marginBottom: 8 }}>
-                Link your Telegram chat
-              </strong>
-              <ol
-                className="dim"
-                style={{
-                  margin: '0 0 12px',
-                  paddingLeft: 20,
-                  fontSize: 13,
-                  listStyle: 'decimal',
-                }}
-              >
-                <li>
-                  Open Telegram and find your bot{' '}
-                  {helloSession.botUsername ? (
-                    <strong>@{helloSession.botUsername}</strong>
+          <Panel
+            lab={
+              interestRow?.interestId != null
+                ? `Interests · row ${interestRow.interestId}`
+                : 'Interests · courseworks.interests'
+            }
+            title={
+              <>
+                What should we read <em>for you?</em>
+              </>
+            }
+            hint="A plain list of topics — one per line, or comma-separated. Write in any language; we understand. This is the single source of truth your nightly summary is built from."
+          >
+            {loading ? (
+              <p className={styles.dim}>Loading…</p>
+            ) : (
+              <>
+                <textarea
+                  className={styles.textarea}
+                  value={interestsDraft}
+                  onChange={(e) => setInterestsDraft(e.target.value)}
+                  rows={6}
+                  placeholder="e.g. machine learning, hiking, cinema…"
+                />
+                <div className={styles.btnRow}>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnPrime}`}
+                    disabled={
+                      savingInterests ||
+                      interestsDraft === (interestRow?.interests ?? '')
+                    }
+                    onClick={() => void saveInterests()}
+                  >
+                    {savingInterests ? 'Saving…' : 'Save interests'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnGhost}`}
+                    onClick={() => setInterestsDraft(interestRow?.interests ?? '')}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </Panel>
+
+          <Panel
+            lab="Transport · Telegram"
+            title={
+              <>
+                Where it <em>lands</em>
+              </>
+            }
+            hint="Your bot token and chat id live in transports. The server calls Telegram's sendMessage for you. Tokens are written once and never shown again after save."
+          >
+            {helloSession ? (
+              <div className={styles.callout}>
+                <strong className={styles.calloutTitle}>Link your Telegram chat</strong>
+                <ol className={styles.calloutList}>
+                  <li>
+                    Open Telegram and find your bot{' '}
+                    {helloSession.botUsername ? (
+                      <strong>@{helloSession.botUsername}</strong>
+                    ) : (
+                      <span>(the one for this token)</span>
+                    )}
+                    .
+                  </li>
+                  <li>
+                    Send exactly: <code className={styles.mono}>hello</code>
+                  </li>
+                  <li>Keep this page open — we poll for it.</li>
+                </ol>
+                {helloHint ? <p className={styles.hintLine}>{helloHint}</p> : null}
+                <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={clearHelloPoll}>
+                  Cancel linking
+                </button>
+              </div>
+            ) : null}
+
+            {loading ? (
+              <p className={styles.dim}>Loading…</p>
+            ) : (
+              <>
+                <div className={styles.tgChip}>
+                  <span className={styles.tgChipDot} aria-hidden />
+                  Bot token on file
+                  {chatDisplay ? (
+                    <>
+                      {' '}
+                      · chat <b>{chatDisplay}</b>
+                    </>
                   ) : (
-                    <span>(the one for this token)</span>
+                    ' · chat not set'
                   )}
-                  .
-                </li>
-                <li>
-                  Send exactly: <code className="mono">hello</code>
-                </li>
-                <li>Keep this page open — we poll for it.</li>
-              </ol>
-              {helloHint ? <p className="small" style={{ margin: '0 0 12px' }}>{helloHint}</p> : null}
-              <button type="button" className="btn-secondary small" onClick={clearHelloPoll}>
-                Cancel linking
-              </button>
-            </div>
-          ) : null}
+                  {transport?.transportId != null ? (
+                    <span className={styles.dim}>
+                      {' '}
+                      · transport id {transport.transportId}
+                    </span>
+                  ) : null}
+                </div>
 
-          {loading ? (
-            <p className="dim">Loading…</p>
-          ) : (
-            <>
-              <p className="tg-linked dim" style={{ marginBottom: 12 }}>
-                <strong className="ln">
-                  {transport?.telegramConfigured ? 'token on file' : 'no token'}
-                </strong>
-                {' · '}
-                <strong className="ln">
-                  {transport?.telegramChatId
-                    ? `chat ${transport.telegramChatId}`
-                    : 'chat not set'}
-                </strong>
-                {transport?.transportId != null ? (
-                  <span className="faint"> · transport id {transport.transportId}</span>
-                ) : null}
-              </p>
-
-              <Row
-                k="bot token"
-                v={
+                <div className={styles.kv} style={{ marginTop: 18 }}>
+                  <b className={styles.kvKey}>New token</b>
                   <input
                     type="password"
                     autoComplete="off"
-                    className="input"
+                    className={styles.input}
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder={
-                      transport?.telegramConfigured
-                        ? 'New token to replace, or clear'
-                        : 'Paste from @BotFather'
-                    }
+                    placeholder="Paste to replace, or leave empty to clear…"
                   />
-                }
-              />
-
-              <div className="tg-actions">
-                <button
-                  type="button"
-                  className="btn-secondary small"
-                  disabled={saving || !tokenInput.trim()}
-                  onClick={() => void saveToken()}
-                >
-                  {saving ? 'Saving…' : 'Save token'}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary small"
-                  disabled={
-                    testing ||
-                    !transport?.telegramConfigured ||
-                    Boolean(helloSession)
-                  }
-                  onClick={() => void testTelegram()}
-                >
-                  {testing ? 'Testing…' : 'Test bot'}
-                </button>
-                <button
-                  type="button"
-                  className="btn-danger small"
-                  disabled={saving || !transport?.telegramConfigured}
-                  onClick={() => void clearToken()}
-                >
-                  Clear token
-                </button>
-              </div>
-
-              <Row
-                k="chat id"
-                v={
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    className="input"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="e.g. 123456789"
-                  />
-                }
-              />
-              <button
-                type="button"
-                className="btn-secondary small"
-                disabled={
-                  saving || chatInput.trim() === (transport?.telegramChatId ?? '')
-                }
-                onClick={() => void saveChatId()}
-              >
-                {saving ? 'Saving…' : 'Save chat id'}
-              </button>
-
-              <div style={{ marginTop: 16 }}>
-                <div className="tw-label" style={{ marginBottom: 6 }}>
-                  send message
                 </div>
-                <button
-                  type="button"
-                  className="btn-primary small"
-                  disabled={
-                    sending ||
-                    !transport?.telegramConfigured ||
-                    !transport?.telegramChatId
-                  }
-                  onClick={() => void sendTestMessage()}
-                >
-                  {sending ? 'Sending…' : 'Send test to my chat'}
-                </button>
-              </div>
+                <div className={styles.btnRow}>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnPrime}`}
+                    disabled={saving || !tokenInput.trim()}
+                    onClick={() => void saveToken()}
+                  >
+                    {saving ? 'Saving…' : 'Save token'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    disabled={
+                      testing ||
+                      !transport?.telegramConfigured ||
+                      Boolean(helloSession)
+                    }
+                    onClick={() => void testTelegram()}
+                  >
+                    {testing ? 'Testing…' : 'Test bot'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnWarn}`}
+                    disabled={saving || !transport?.telegramConfigured}
+                    onClick={() => void clearToken()}
+                  >
+                    Clear token
+                  </button>
+                </div>
+                <div className={styles.status}>
+                  <span className={styles.statusDot} aria-hidden />
+                  <span>
+                    <span className={styles.statusStrong}>Ready</span>
+                    {' · '}
+                    <span className={styles.dim}>Telegram transport</span>
+                  </span>
+                </div>
 
-              {message ? (
-                <pre className="tg-preview" style={{ marginTop: 14, color: 'var(--text)' }}>
-                  {message}
-                </pre>
-              ) : null}
-              {error ? (
-                <pre
-                  className="tg-preview"
-                  style={{
-                    marginTop: 14,
-                    borderColor: 'oklch(0.40 0.10 25)',
-                    color: 'oklch(0.78 0.14 25)',
-                  }}
-                >
-                  {error}
-                </pre>
-              ) : null}
-            </>
-          )}
-        </Panel>
+                <div className={styles.subsection}>
+                  <div className={styles.lab}>Chat id</div>
+                  <h3 className={styles.cardTitle}>Link your chat</h3>
+                  <p className={styles.hint}>
+                    Paste your chat id manually, or use Test bot without a chat to link automatically
+                    after you send hello.
+                  </p>
+                  <div className={styles.kv}>
+                    <b className={styles.kvKey}>Chat id</b>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className={styles.input}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="e.g. 123456789"
+                    />
+                  </div>
+                  <div className={styles.btnRow}>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnPrime}`}
+                      disabled={saving || chatInput.trim() === (transport?.telegramChatId ?? '')}
+                      onClick={() => void saveChatId()}
+                    >
+                      {saving ? 'Saving…' : 'Save chat id'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.subsection}>
+                  <div className={styles.lab}>Send</div>
+                  <h3 className={styles.cardTitle}>Send a test</h3>
+                  <p className={styles.hint}>
+                    Drops a friendly message into your Telegram so you can see how delivery feels.
+                  </p>
+                  <div className={styles.btnRow}>
+                    <button
+                      type="button"
+                      className={`${styles.btn} ${styles.btnAccent}`}
+                      disabled={
+                        sending ||
+                        !transport?.telegramConfigured ||
+                        !transport?.telegramChatId
+                      }
+                      onClick={() => void sendTestMessage()}
+                    >
+                      {sending ? 'Sending…' : 'Send test message to my chat'}
+                    </button>
+                  </div>
+                </div>
+
+                {message ? (
+                  <pre className={styles.messageBox}>{message}</pre>
+                ) : null}
+                {error ? (
+                  <pre className={`${styles.messageBox} ${styles.messageBoxError}`}>{error}</pre>
+                ) : null}
+              </>
+            )}
+          </Panel>
+        </div>
       </div>
     </div>
   );

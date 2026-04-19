@@ -11,45 +11,6 @@
   box-shadow: var(--shadow-screen);
 }
 
-.screenHead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--rule);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: var(--panel);
-}
-
-.dots {
-  display: flex;
-  gap: 6px;
-}
-
-.dotWin {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #e5dfd2;
-  display: inline-block;
-}
-
-.url {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.badge {
-  margin-left: auto;
-}
-
 .body {
   padding: 36px 28px 56px;
   max-width: 760px;

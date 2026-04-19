@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../../features/Auth/AuthProvider';
 import type { FC } from 'react';
 import styles from './style.module.css';
@@ -14,37 +14,36 @@ function formatIssueDate(d: Date): string {
     .toUpperCase();
 }
 
+function Logo({ interactive }: { interactive: boolean }) {
+  const mark = (
+    <>
+      ai<span className={styles.dotEd}>.</span>news
+    </>
+  );
+  if (interactive) {
+    return (
+      <Link to="/" className={styles.logoEd} aria-label="AI News home">
+        {mark}
+      </Link>
+    );
+  }
+  return (
+    <div className={styles.logoEd} aria-label="AI News">
+      {mark}
+    </div>
+  );
+}
+
 const Header: FC = () => {
   const { user, logout } = useAuth();
-  const location = useLocation();
-  const isSettings = location.pathname === '/settings';
 
   if (!user) {
     return (
-      <header className={`${styles.topbar} ${styles.topbarEditorial}`}>
-        <div className={styles.left}>
-          <div className={styles.logoEd} aria-label="AI News">
-            ai<span className={styles.dotEd}>.</span>news
-          </div>
-          <div className={styles.metaEd}>Sign in</div>
-        </div>
-      </header>
-    );
-  }
-
-  if (isSettings) {
-    return (
-      <header className={`${styles.topbar} ${styles.topbarEditorial}`}>
-        <div className={styles.left}>
-          <Link to="/" className={styles.logoEd} aria-label="AI News home">
-            ai<span className={styles.dotEd}>.</span>news
-          </Link>
-          <div className={styles.metaEd}>Your account</div>
-        </div>
-        <div className={styles.right}>
-          <button type="button" className={`${styles.pill} ${styles.pillGhost}`} onClick={() => logout()}>
-            Logout
-          </button>
+      <header className={`${styles.topbar} ${styles.topbarSwiss}`}>
+        <div className={styles.gridSw}>
+          <Logo interactive={false} />
+          <div className={styles.centerSw}>SIGN IN</div>
+          <div className={styles.rightSwiss} />
         </div>
       </header>
     );
@@ -55,9 +54,7 @@ const Header: FC = () => {
   return (
     <header className={`${styles.topbar} ${styles.topbarSwiss}`}>
       <div className={styles.gridSw}>
-        <Link to="/" className={styles.logoSw} aria-label="AI News home">
-          AI<span className={styles.dotSw}>/</span>NEWS
-        </Link>
+        <Logo interactive />
         <div className={styles.centerSw}>{issueLine}</div>
         <div className={styles.rightSwiss}>
           {user.avatarUrl ? (

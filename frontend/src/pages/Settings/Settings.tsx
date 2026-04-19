@@ -306,16 +306,6 @@ const Settings: FC = () => {
   return (
     <div className={styles.page}>
       <div className={styles.screen}>
-        <div className={styles.screenHead}>
-          <div className={styles.dots} aria-hidden>
-            <span className={styles.dotWin} />
-            <span className={styles.dotWin} />
-            <span className={styles.dotWin} />
-          </div>
-          <span className={styles.url}>ainews.app/settings</span>
-          <span className={styles.badge}>SETTINGS</span>
-        </div>
-
         <div className={styles.body}>
           <Link to="/" className={styles.back}>
             ← Back to home

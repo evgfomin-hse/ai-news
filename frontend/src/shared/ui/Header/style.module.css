@@ -14,64 +14,29 @@
   border-bottom: 1px solid var(--ink);
 }
 
-.topbarEditorial {
-  border-bottom: 1px solid var(--rule);
-}
-
-.left {
-  display: flex;
+.gridSw {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 14px;
-  min-width: 0;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  gap: 12px;
 }
 
-.right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-/* Editorial logo: ai.news */
+/* Editorial wordmark (same as settings screen) */
 .logoEd {
   font-family: var(--serif);
   font-weight: 500;
   font-size: 20px;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+  justify-self: start;
 }
 
 .dotEd {
-  color: var(--accent);
-}
-
-.metaEd {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-left: 14px;
-  padding-left: 14px;
-  border-left: 1px solid var(--rule);
-}
-
-@media (max-width: 720px) {
-  .metaEd {
-    display: none;
-  }
-}
-
-/* Swiss logo: AI/NEWS */
-.logoSw {
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.dotSw {
   color: var(--accent);
 }
 
@@ -83,16 +48,6 @@
   color: var(--ink-2);
   text-align: center;
   justify-self: center;
-}
-
-.gridSw {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  gap: 12px;
 }
 
 .rightSwiss {
@@ -114,7 +69,7 @@
     text-align: left;
     order: 2;
   }
-  .logoSw {
+  .logoEd {
     order: 1;
   }
   .rightSwiss {
@@ -122,24 +77,6 @@
     justify-self: stretch;
     justify-content: flex-start;
   }
-}
-
-.pill {
-  border: 1px solid var(--ink);
-  background: transparent;
-  padding: 7px 14px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pillGhost {
-  border-color: var(--rule);
-  color: var(--ink-2);
 }
 
 .pillSwiss {

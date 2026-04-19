@@ -5,14 +5,6 @@ import { postGoogleLogin } from '../../shared/api';
 import { useAuth } from '../../features/Auth/AuthProvider';
 import styles from './style.module.css';
 
-function formatNavDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
 const Login: FC = () => {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,30 +40,9 @@ const Login: FC = () => {
     setError('Login Failed');
   };
 
-  const navDate = formatNavDate(new Date());
-
   return (
     <div className={styles.wrap}>
       <div className={styles.screen}>
-        <div className={styles.screenHead}>
-          <div className={styles.dots} aria-hidden>
-            <span className={styles.dotWin} />
-            <span className={styles.dotWin} />
-            <span className={styles.dotWin} />
-          </div>
-          <span className={styles.url}>ainews.app/signin</span>
-          <span className={styles.badge}>SIGN IN</span>
-        </div>
-        <div className={styles.nav}>
-          <div className={styles.logo} aria-hidden>
-            ai<span className={styles.logoDot}>.</span>news
-          </div>
-          <div className={styles.meta}>Daily digest · {navDate}</div>
-          <div className={styles.navRight}>
-            <span className={`${styles.pill} ${styles.pillGhost}`}>About</span>
-            <span className={styles.pill}>Login</span>
-          </div>
-        </div>
         <div className={styles.signin}>
           <div className={styles.kicker}>Daily · AI news, quietly curated</div>
           <h1 className={styles.title}>

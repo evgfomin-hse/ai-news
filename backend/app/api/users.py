@@ -10,15 +10,15 @@ from app.api.dependencies import (
 )
 from app.models import User
 from app.schemas.summary import UserSummaryResponse
-from app.schemas.user import UserMeOut, UserMePatch
+from app.schemas.user import UserProfileOut, UserProfilePatch
 from app.services.summary_service import SummaryMaintenanceService, SummaryService
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-def _user_me_out(user: User) -> UserMeOut:
-    return UserMeOut(
+def _user_profile_out(user: User) -> UserProfileOut:
+    return UserProfileOut(
         id=str(user.id),
         username=user.name or "",
         email=user.email,
@@ -26,13 +26,13 @@ def _user_me_out(user: User) -> UserMeOut:
     )
 
 
-@router.get("/me", response_model=UserMeOut)
-def get_me(user: Annotated[User, Depends(get_current_user)]) -> UserMeOut:
-    return _user_me_out(user)
+@router.get("", response_model=UserProfileOut)
+def get_profile(user: Annotated[User, Depends(get_current_user)]) -> UserProfileOut:
+    return _user_profile_out(user)
 
 
-@router.get("/me/summary", response_model=UserSummaryResponse)
-def get_my_summary(
+@router.get("/summary", response_model=UserSummaryResponse)
+def get_summary(
     user: Annotated[User, Depends(get_current_user)],
     summary: Annotated[SummaryService, Depends(get_summary_service)],
     page: Annotated[int, Query(ge=1, description="1-based page")] = 1,
@@ -45,8 +45,8 @@ def get_my_summary(
     return summary.get_summary_for_user(user.id, page=page, page_size=page_size)
 
 
-@router.post("/me/summary/generate")
-def generate_my_summary(
+@router.post("/summary/generate")
+def generate_summary(
     user: Annotated[User, Depends(get_current_user)],
     maintenance: Annotated[SummaryMaintenanceService, Depends(get_summary_maintenance_service)],
 ) -> dict[str, bool | int]:
@@ -55,11 +55,11 @@ def generate_my_summary(
     return {"ok": True, "rows_inserted": n}
 
 
-@router.patch("/me", response_model=UserMeOut)
-def patch_me(
-    body: UserMePatch,
+@router.patch("", response_model=UserProfileOut)
+def patch_profile(
+    body: UserProfilePatch,
     user: Annotated[User, Depends(get_current_user)],
     users: Annotated[UserService, Depends(get_user_service)],
-) -> UserMeOut:
+) -> UserProfileOut:
     users.patch_profile(user, name=body.name, picture=body.picture)
-    return _user_me_out(user)
+    return _user_profile_out(user)

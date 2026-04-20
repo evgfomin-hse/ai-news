@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field
 
 
-class InterestMeOut(BaseModel):
+class InterestOut(BaseModel):
     interestId: int | None = None
     interests: str = ""
 
 
-class InterestMePatch(BaseModel):
+class InterestPatch(BaseModel):
     interests: str = Field(
         default="",
         max_length=50_000,

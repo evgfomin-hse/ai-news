@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
 
 
-class UserMeOut(BaseModel):
+class UserProfileOut(BaseModel):
     id: str
     username: str
     email: str
     avatarUrl: str | None = None
 
 
-class UserMePatch(BaseModel):
+class UserProfilePatch(BaseModel):
     name: str | None = None
     picture: str | None = None
 

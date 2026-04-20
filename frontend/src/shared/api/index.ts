@@ -12,14 +12,14 @@ export {
   type UserSummaryResponse,
 } from './calls/summary';
 export {
-  getTransportMe,
-  patchTransportMe,
+  getTransport,
+  patchTransport,
   postTelegramCaptureHello,
   postTelegramTest,
   postTransportSendMessage,
   type SendMessageResponse,
   type TelegramCaptureHelloResponse,
   type TelegramTestResponse,
-  type TransportMe,
+  type TransportView,
 } from './calls/transports';
-export { getInterestMe, patchInterestMe, type InterestMe } from './calls/interests';
+export { getInterest, patchInterest, type InterestView } from './calls/interests';

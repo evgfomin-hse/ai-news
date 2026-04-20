@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
 
 
-class TransportMeOut(BaseModel):
+class TransportOut(BaseModel):
     transportId: int | None = None
     telegramConfigured: bool = False
     """Telegram chat id for outbound messages; null until the user saves it."""
     telegramChatId: str | None = None
 
 
-class TransportMePatch(BaseModel):
+class TransportPatch(BaseModel):
     telegramBotToken: str | None = Field(
         default=None,
         description="Set or replace token; empty string removes token (and chat id). Omit = no change.",

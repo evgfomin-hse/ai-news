@@ -4,30 +4,30 @@ from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_current_user, get_interest_service
 from app.models import User
-from app.schemas.interest import InterestMeOut, InterestMePatch
+from app.schemas.interest import InterestOut, InterestPatch
 from app.services.interest_service import InterestService
 
 router = APIRouter(prefix="/interests", tags=["interests"])
 
 
-@router.get("/me", response_model=InterestMeOut)
-def get_interests_me(
+@router.get("", response_model=InterestOut)
+def get_interests(
     user: Annotated[User, Depends(get_current_user)],
     interests: Annotated[InterestService, Depends(get_interest_service)],
-) -> InterestMeOut:
+) -> InterestOut:
     row = interests.get_latest_for_user(user.id)
     if row is None:
-        return InterestMeOut()
+        return InterestOut()
     text = (row.interests or "").strip() if row.interests is not None else ""
-    return InterestMeOut(interestId=row.id, interests=text)
+    return InterestOut(interestId=row.id, interests=text)
 
 
-@router.patch("/me", response_model=InterestMeOut)
-def patch_interests_me(
-    body: InterestMePatch,
+@router.patch("", response_model=InterestOut)
+def patch_interests(
+    body: InterestPatch,
     user: Annotated[User, Depends(get_current_user)],
     interests: Annotated[InterestService, Depends(get_interest_service)],
-) -> InterestMeOut:
+) -> InterestOut:
     row = interests.upsert_for_user(user.id, interests_text=body.interests)
     out_text = (row.interests or "").strip() if row.interests is not None else ""
-    return InterestMeOut(interestId=row.id, interests=out_text)
+    return InterestOut(interestId=row.id, interests=out_text)

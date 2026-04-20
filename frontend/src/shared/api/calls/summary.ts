@@ -20,7 +20,8 @@ export async function getUserSummaryPage(
     page: String(page),
     page_size: String(pageSize),
   });
-  const response = await apiFetch(`/users/me/summary?${qs.toString()}`);
+  const response = await apiFetch(`/users/summary?${qs.toString()}`);
+ 
   if (!response.ok) {
     const json = (await response.json().catch(() => ({}))) as { detail?: unknown };
     throw new Error(parseFastApiDetail(json, 'Could not load summary'));
@@ -30,9 +31,10 @@ export async function getUserSummaryPage(
 }
 
 export async function postGenerateUserSummary(): Promise<void> {
-  const r = await apiFetch('/users/me/summary/generate', { method: 'POST' });
-  if (!r.ok) {
-    const j = (await r.json().catch(() => ({}))) as { detail?: unknown };
+  const response = await apiFetch('/users/summary/generate', { method: 'POST' });
+ 
+  if (!response.ok) {
+    const j = (await response.json().catch(() => ({}))) as { detail?: unknown };
     throw new Error(parseFastApiDetail(j, 'Could not generate summary'));
   }
 }

@@ -7,16 +7,16 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  getInterestMe,
-  getTransportMe,
+  getInterest,
+  getTransport,
   parseFastApiDetail,
-  patchInterestMe,
-  patchTransportMe,
+  patchInterest,
+  patchTransport,
   postTelegramCaptureHello,
   postTelegramTest,
   postTransportSendMessage,
-  type InterestMe,
-  type TransportMe,
+  type InterestView,
+  type TransportView,
 } from '../../shared/api';
 import { useAuth } from '../../features/Auth/AuthProvider';
 import styles from './style.module.css';
@@ -56,8 +56,8 @@ const HELLO_MAX_POLLS = 48;
 
 const Settings: FC = () => {
   const { user } = useAuth();
-  const [transport, setTransport] = useState<TransportMe | null>(null);
-  const [interestRow, setInterestRow] = useState<InterestMe | null>(null);
+  const [transport, setTransport] = useState<TransportView | null>(null);
+  const [interestRow, setInterestRow] = useState<InterestView | null>(null);
   const [interestsDraft, setInterestsDraft] = useState('');
   const [tokenInput, setTokenInput] = useState('');
   const [chatInput, setChatInput] = useState('');
@@ -78,7 +78,7 @@ const Settings: FC = () => {
   const pollAttemptsRef = useRef(0);
 
   const loadTransport = useCallback(async () => {
-    const data = await getTransportMe();
+    const data = await getTransport();
     if (!data) {
       setTransport(null);
       return;
@@ -88,7 +88,7 @@ const Settings: FC = () => {
   }, []);
 
   const loadInterests = useCallback(async () => {
-    const data = await getInterestMe();
+    const data = await getInterest();
     if (!data) {
       setInterestRow(null);
       setInterestsDraft('');
@@ -125,8 +125,8 @@ const Settings: FC = () => {
 
   useEffect(() => () => clearHelloPoll(), [clearHelloPoll]);
 
-  const patchTransport = async (body: Record<string, string>) => {
-    const next = await patchTransportMe(body);
+  const persistTransportPatch = async (body: Record<string, string>) => {
+    const next = await patchTransport(body);
     setTransport(next);
   };
 
@@ -136,7 +136,7 @@ const Settings: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      await patchTransport({ telegramBotToken: tokenInput });
+      await persistTransportPatch({ telegramBotToken: tokenInput });
       setTokenInput('');
       setMessage('Telegram bot token saved.');
     } catch (e) {
@@ -152,7 +152,7 @@ const Settings: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      await patchTransport({ telegramChatId: chatInput.trim() });
+      await persistTransportPatch({ telegramChatId: chatInput.trim() });
       setMessage('Chat id saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -168,7 +168,7 @@ const Settings: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      await patchTransport({ telegramBotToken: '' });
+      await persistTransportPatch({ telegramBotToken: '' });
       setChatInput('');
       setMessage('Token removed (chat id cleared too).');
     } catch {
@@ -272,7 +272,7 @@ const Settings: FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const data = await patchInterestMe(interestsDraft);
+      const data = await patchInterest(interestsDraft);
       setInterestRow(data);
       setInterestsDraft(data.interests ?? '');
       setMessage('Interests saved.');

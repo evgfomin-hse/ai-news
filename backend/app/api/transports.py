@@ -12,8 +12,8 @@ from app.schemas.transport import (
     SendMessageBody,
     SendMessageOut,
     TelegramTestOut,
-    TransportMeOut,
-    TransportMePatch,
+    TransportOut,
+    TransportPatch,
 )
 from app.services.transport_service import (
     TELEGRAM_CHAT_ID_KEY,
@@ -29,34 +29,34 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/transports", tags=["transports"])
 
 
-def _transport_me_out(row: Transport | None) -> TransportMeOut:
+def _transport_out(row: Transport | None) -> TransportOut:
     if row is None:
-        return TransportMeOut()
-    return TransportMeOut(
+        return TransportOut()
+    return TransportOut(
         transportId=row.id,
         telegramConfigured=bool(telegram_token_from_row(row)),
         telegramChatId=telegram_chat_id_from_row(row),
     )
 
 
-@router.get("/me", response_model=TransportMeOut)
-def get_transport_me(
+@router.get("", response_model=TransportOut)
+def get_transport(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
-) -> TransportMeOut:
+) -> TransportOut:
     row = transports.get_active_for_user(user.id)
-    return _transport_me_out(row)
+    return _transport_out(row)
 
 
-@router.patch("/me", response_model=TransportMeOut)
-def patch_transport_me(
-    body: TransportMePatch,
+@router.patch("", response_model=TransportOut)
+def patch_transport(
+    body: TransportPatch,
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
-) -> TransportMeOut:
+) -> TransportOut:
     if body.telegramBotToken is None and body.telegramChatId is None:
         row = transports.get_active_for_user(user.id)
-        return _transport_me_out(row)
+        return _transport_out(row)
 
     row = transports.ensure_active_for_user(user.id)
     blob = dict(row.data) if row.data is not None else {}
@@ -84,10 +84,10 @@ def patch_transport_me(
     row.data = blob
     row.updated_at = naive_utc_now()
     transports.persist_transport(row)
-    return _transport_me_out(row)
+    return _transport_out(row)
 
 
-@router.post("/me/telegram-test", response_model=TelegramTestOut)
+@router.post("/telegram-test", response_model=TelegramTestOut)
 def test_telegram_bot(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
@@ -173,7 +173,7 @@ def _telegram_ack_updates(token: str, offset: int) -> None:
         logger.debug("Telegram ack getUpdates failed (non-fatal)", exc_info=True)
 
 
-@router.post("/me/telegram-capture-hello", response_model=CaptureHelloOut)
+@router.post("/telegram-capture-hello", response_model=CaptureHelloOut)
 def capture_hello_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
@@ -243,7 +243,7 @@ def capture_hello_message(
     )
 
 
-@router.post("/me/send-message", response_model=SendMessageOut)
+@router.post("/send-message", response_model=SendMessageOut)
 def send_telegram_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],

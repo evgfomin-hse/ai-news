@@ -1,23 +1,23 @@
 import { apiFetch, parseFastApiDetail } from '../client';
 
-export type TransportMe = {
+export type TransportView = {
   transportId: number | null;
   telegramConfigured: boolean;
   telegramChatId: string | null;
 };
 
-export async function getTransportMe(): Promise<TransportMe | null> {
-  const response = await apiFetch('/transports/me');
-  
+export async function getTransport(): Promise<TransportView | null> {
+  const response = await apiFetch('/transports');
+
   if (!response.ok) return null;
 
-  return (await response.json()) as TransportMe;
+  return (await response.json()) as TransportView;
 }
 
-export async function patchTransportMe(
+export async function patchTransport(
   body: Record<string, string>,
-): Promise<TransportMe> {
-  const response = await apiFetch('/transports/me', {
+): Promise<TransportView> {
+  const response = await apiFetch('/transports', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -27,7 +27,7 @@ export async function patchTransportMe(
     throw new Error(parseFastApiDetail(json));
   }
 
-  return (await response.json()) as TransportMe;
+  return (await response.json()) as TransportView;
 }
 
 export type TelegramCaptureHelloResponse = {
@@ -41,12 +41,12 @@ export async function postTelegramCaptureHello(): Promise<{
   response: Response;
   body: TelegramCaptureHelloResponse;
 }> {
-  const response = await apiFetch('/transports/me/telegram-capture-hello', {
+  const response = await apiFetch('/transports/telegram-capture-hello', {
     method: 'POST',
   });
 
   const body = (await response.json().catch(() => ({}))) as TelegramCaptureHelloResponse;
-  
+
   return { response: response, body };
 }
 
@@ -57,9 +57,9 @@ export type TelegramTestResponse = {
 };
 
 export async function postTelegramTest(): Promise<TelegramTestResponse> {
-  const response = await apiFetch('/transports/me/telegram-test', { method: 'POST' });
+  const response = await apiFetch('/transports/telegram-test', { method: 'POST' });
   const json = (await response.json().catch(() => ({}))) as TelegramTestResponse;
-  
+
   if (!response.ok) {
     throw new Error(parseFastApiDetail(json));
   }
@@ -75,16 +75,16 @@ export type SendMessageResponse = {
 export async function postTransportSendMessage(
   text: string,
 ): Promise<SendMessageResponse> {
-  const response = await apiFetch('/transports/me/send-message', {
+  const response = await apiFetch('/transports/send-message', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
   const json = (await response.json().catch(() => ({}))) as SendMessageResponse;
-  
+
   if (!response.ok) {
     throw new Error(parseFastApiDetail(json));
   }
-  
+
   return json;
 }

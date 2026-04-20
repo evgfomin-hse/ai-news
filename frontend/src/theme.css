@@ -1,16 +1,24 @@
+@font-face {
+  font-family: Architexture;
+  src: url('/fonts/architexture.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Design tokens (AI News reference). Scoped layout lives in *.module.css */
 :root {
-  --paper: #faf8f4;
+  --paper: #ffffff;
   --ink: #121210;
   --ink-2: #2b2a27;
   --muted: #857d72;
   --rule: #e8e2d6;
   --rule-2: #d7cfbf;
-  --accent: #d9632b;
-  --accent-ink: color-mix(in oklch, #d9632b 70%, #000 25%);
-  --serif: 'Fraunces', 'Newsreader', Georgia, serif;
-  --sans: 'Inter Tight', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --accent: #2b93d9;
+  --accent-ink: color-mix(in oklch, #2babd9 70%, #000 25%);
+  --serif: Architexture, 'Fraunces', 'Newsreader', Georgia, serif;
+  --sans: Architexture, 'Inter Tight', system-ui, sans-serif;
+  --mono: Architexture, 'JetBrains Mono', ui-monospace, monospace;
   --panel: #fff;
   --shadow-screen: 0 1px 0 rgba(0, 0, 0, 0.02), 0 24px 60px -40px rgba(40, 30, 10, 0.18);
 
@@ -56,6 +64,12 @@ body {
 
 a {
   color: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 button {

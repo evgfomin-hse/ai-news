@@ -14,7 +14,7 @@ from app.schemas.user import UserProfileOut, UserProfilePatch
 from app.services.summary_service import SummaryMaintenanceService, SummaryService
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/user", tags=["user"])
 
 
 def _user_profile_out(user: User) -> UserProfileOut:

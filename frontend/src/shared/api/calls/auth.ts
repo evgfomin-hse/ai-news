@@ -8,7 +8,7 @@ export type SessionUser = {
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const response = await apiFetch('/users');
+  const response = await apiFetch('/user');
   
   if (!response.ok) return null;
 

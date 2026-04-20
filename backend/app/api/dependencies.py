@@ -9,11 +9,14 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models import User
-from app.repositories.summaries import SummaryRepository
+from app.repositories.summary_repository import SummaryRepository
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
-from app.services.summary import PostgresSummaryService, SummaryService
-from app.services.summary.maintenance import SummaryMaintenanceService
+from app.services.summary_service import (
+    PostgresSummaryService,
+    SummaryMaintenanceService,
+    SummaryService,
+)
 from app.services.transport_service import TransportService
 from app.services.user_service import UserService
 

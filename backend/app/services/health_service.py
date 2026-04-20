@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.repositories.database import DatabaseRepository
+from app.repositories.database_repository import DatabaseRepository
 
 
 class HealthService:

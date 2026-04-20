@@ -4,13 +4,21 @@ from typing import Annotated
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from app.api.deps import get_current_user, get_transport_service
+
+from app.api.dependencies import get_current_user, get_transport_service
 from app.models import Transport, User
-from app.services.transport_service import TransportService
-from app.services.transports import (
+from app.schemas.transport import (
+    CaptureHelloOut,
+    SendMessageBody,
+    SendMessageOut,
+    TelegramTestOut,
+    TransportMeOut,
+    TransportMePatch,
+)
+from app.services.transport_service import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_TOKEN_KEY,
+    TransportService,
     naive_utc_now,
     telegram_chat_id_from_row,
     telegram_token_from_row,
@@ -19,48 +27,6 @@ from app.services.transports import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/transports", tags=["transports"])
-
-
-class TransportMeOut(BaseModel):
-    transportId: int | None = None
-    telegramConfigured: bool = False
-    """Telegram chat id for outbound messages; null until the user saves it."""
-    telegramChatId: str | None = None
-
-
-class TransportMePatch(BaseModel):
-    telegramBotToken: str | None = Field(
-        default=None,
-        description="Set or replace token; empty string removes token (and chat id). Omit = no change.",
-    )
-    telegramChatId: str | None = Field(
-        default=None,
-        description="Numeric chat id for sendMessage; empty string clears. Omit = no change.",
-    )
-
-
-class TelegramTestOut(BaseModel):
-    ok: bool = True
-    botUsername: str | None = None
-    botId: int | None = None
-
-
-class SendMessageBody(BaseModel):
-    text: str = Field(
-        default="Test message from HSE repos.",
-        max_length=4096,
-    )
-
-
-class SendMessageOut(BaseModel):
-    ok: bool = True
-    telegramMessageId: int | None = None
-
-
-class CaptureHelloOut(BaseModel):
-    linked: bool
-    chatId: str | None = None
-    hint: str | None = None
 
 
 def _transport_me_out(row: Transport | None) -> TransportMeOut:

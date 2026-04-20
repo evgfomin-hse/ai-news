@@ -8,7 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.services.summary.maintenance import SummaryMaintenanceService
+from app.services.summary_service import SummaryMaintenanceService
 
 logger = logging.getLogger(__name__)
 

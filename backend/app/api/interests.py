@@ -1,26 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
 
-from app.api.deps import get_current_user, get_interest_service
+from app.api.dependencies import get_current_user, get_interest_service
 from app.models import User
+from app.schemas.interest import InterestMeOut, InterestMePatch
 from app.services.interest_service import InterestService
 
 router = APIRouter(prefix="/interests", tags=["interests"])
-
-
-class InterestMeOut(BaseModel):
-    interestId: int | None = None
-    interests: str = ""
-
-
-class InterestMePatch(BaseModel):
-    interests: str = Field(
-        default="",
-        max_length=50_000,
-        description="Free-text interests for this user.",
-    )
 
 
 @router.get("/me", response_model=InterestMeOut)

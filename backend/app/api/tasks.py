@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.api.deps import get_summary_maintenance_service
+from app.api.dependencies import get_summary_maintenance_service
 from app.core.config import settings
-from app.services.summary.maintenance import SummaryMaintenanceService
+from app.services.summary_service import SummaryMaintenanceService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

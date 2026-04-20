@@ -1,32 +1,20 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
 
-from app.api.deps import (
+from app.api.dependencies import (
     get_current_user,
     get_summary_maintenance_service,
     get_summary_service,
     get_user_service,
 )
 from app.models import User
-from app.services.summary import SummaryService, UserSummaryResponse
-from app.services.summary.maintenance import SummaryMaintenanceService
+from app.schemas.summary import UserSummaryResponse
+from app.schemas.user import UserMeOut, UserMePatch
+from app.services.summary_service import SummaryMaintenanceService, SummaryService
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-class UserMeOut(BaseModel):
-    id: str
-    username: str
-    email: str
-    avatarUrl: str | None = None
-
-
-class UserMePatch(BaseModel):
-    name: str | None = None
-    picture: str | None = None
 
 
 def _user_me_out(user: User) -> UserMeOut:

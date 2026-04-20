@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.deps import get_health_service
+from app.api.dependencies import get_health_service
 from app.services.health_service import HealthService
 
 logger = logging.getLogger(__name__)

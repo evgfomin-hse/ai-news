@@ -6,10 +6,10 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-from pydantic import BaseModel, Field
 
-from app.api.deps import get_user_service
+from app.api.dependencies import get_user_service
 from app.core.config import settings
+from app.schemas.user import GoogleLoginBody, GoogleLoginJson, UserOut
 from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
@@ -17,23 +17,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 SESSION_MAX_AGE_SECONDS = 7 * 24 * 3600
-
-
-class GoogleLoginBody(BaseModel):
-    token: str = Field(..., min_length=1, description="Google ID token (JWT) from credential")
-
-
-class UserOut(BaseModel):
-    id: str
-    username: str
-    email: str
-    avatarUrl: str | None = None
-
-
-class GoogleLoginJson(BaseModel):
-    """Returned in the response body; session JWT is only in an HttpOnly cookie."""
-
-    user: UserOut
 
 
 def _issue_app_token(user_id: str, name: str, picture: str | None) -> str:

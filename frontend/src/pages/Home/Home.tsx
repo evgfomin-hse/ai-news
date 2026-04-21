@@ -285,7 +285,7 @@ const Home: FC = () => {
                     ) : null}
                   </>
                 ) : (
-                  <>0 rows in public.summaries</>
+                  <>0 summaries generated yet</>
                 )}
               </div>
             </div>

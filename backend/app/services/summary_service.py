@@ -40,9 +40,9 @@ def _as_utc(dt: datetime) -> datetime:
 class PostgresSummaryService(SummaryService):
     """Loads markdown rows from coursework `public.summaries` with offset pagination."""
 
-    EMPTY_NOTICE = """## No rows in `public.summaries`
+    EMPTY_NOTICE = """## No summaries yet
 
-There are no summary records for your user yet. Insert rows into **`summaries`** (`user_id`, `summary`, `created_at`) to see them here."""
+Take a deep breath, you can configure your interests and transport channel"""
 
     def __init__(self, summaries: SummaryRepository) -> None:
         self._summaries = summaries

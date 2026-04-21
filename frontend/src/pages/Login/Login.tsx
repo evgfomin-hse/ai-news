@@ -46,11 +46,10 @@ const Login: FC = () => {
         <div className={styles.signin}>
           <div className={styles.kicker}>Daily · AI news, quietly curated</div>
           <h1 className={styles.title}>
-            Your morning read, <em>without the noise.</em>
+            Stay up to date, <em>without the hassle.</em>
           </h1>
           <p className={styles.lead}>
-            One friendly digest, built around the topics you care about. No feeds. No doomscroll.
-            Just a well-made letter — with summaries from your coursework table.
+            One friendly digest in the world of doomscroll and information overload. Get insights without the noise.
           </p>
           {error ? <p className={styles.error}>{error}</p> : null}
           <div className={`${styles.gbtnWrap} ${isLoading ? styles.loading : ''}`}>

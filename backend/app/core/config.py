@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Used to sign API session JWTs after Google login; use a long random string in production.
     jwt_secret: str = "dev-only-change-me"
     jwt_algorithm: str = "HS256"
+    session_ttl_seconds: int = 7 * 24 * 3600
 
     # When set, POST /auth/e2e/bootstrap-session (header X-E2E-Bootstrap-Secret) creates a
     # real DB user + HttpOnly session JWT (same path as Google login). Leave empty in production.

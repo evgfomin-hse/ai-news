@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   getUserSummaryPage,
-  postGenerateUserSummary,
   type SummaryListItem,
   type UserSummaryResponse,
 } from '../../shared/api';
@@ -124,13 +123,18 @@ const DropCountdown: FC = () => {
   );
 };
 
+type SummaryFeedback = {
+  liked: boolean | null;
+  description: string;
+};
+
 const Home: FC = () => {
   const { user } = useAuth();
   const [summaryPayload, setSummaryPayload] = useState<UserSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [genLoading, setGenLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<SummaryListItem | null>(null);
+  const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<Record<string, SummaryFeedback>>({});
   const modalCloseRef = useRef<HTMLButtonElement>(null);
 
   const fetchSummaryPage = useCallback(async (page: number) => {
@@ -165,17 +169,36 @@ const Home: FC = () => {
     };
   }, [detailItem]);
 
-  const generateMySummary = async () => {
-    setGenLoading(true);
-    setFetchError(null);
-    try {
-      await postGenerateUserSummary();
-      await fetchSummaryPage(1);
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Could not generate summary');
-    } finally {
-      setGenLoading(false);
-    }
+  const exportToCsv = () => {
+    // Placeholder: CSV export will be implemented later.
+  };
+
+  const setDetailVote = (liked: boolean) => {
+    if (!detailItem) return;
+    setFeedbackBySummaryId((prev) => {
+      const current = prev[detailItem.id] ?? { liked: null, description: '' };
+      return {
+        ...prev,
+        [detailItem.id]: {
+          ...current,
+          liked,
+        },
+      };
+    });
+  };
+
+  const setDetailDescription = (description: string) => {
+    if (!detailItem) return;
+    setFeedbackBySummaryId((prev) => {
+      const current = prev[detailItem.id] ?? { liked: null, description: '' };
+      return {
+        ...prev,
+        [detailItem.id]: {
+          ...current,
+          description,
+        },
+      };
+    });
   };
 
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -316,10 +339,10 @@ const Home: FC = () => {
                 <button
                   type="button"
                   className={`${styles.swBtn} ${styles.swBtnPrime}`}
-                  disabled={genLoading || loading}
-                  onClick={() => void generateMySummary()}
+                  disabled={loading}
+                  onClick={exportToCsv}
                 >
-                  {genLoading ? '…' : 'GENERATE NOW →'}
+                  EXPORT TO CSV →
                 </button>
               </div>
             </div>
@@ -328,6 +351,9 @@ const Home: FC = () => {
       ) : null}
 
       {detailItem ? (
+        (() => {
+          const feedback = feedbackBySummaryId[detailItem.id] ?? { liked: null, description: '' };
+          return (
         <div
           className={styles.modalBackdrop}
           role="presentation"
@@ -359,9 +385,42 @@ const Home: FC = () => {
             </header>
             <div className={styles.modalBody}>
               <SummaryMarkdown text={detailItem.body} />
+              <section className={styles.feedbackPanel} aria-label="Summary feedback">
+                <div className={styles.feedbackTitle}>Was this summary useful?</div>
+                <div className={styles.feedbackActions}>
+                  <button
+                    type="button"
+                    className={`${styles.swBtn} ${feedback.liked === true ? styles.feedbackBtnActive : ''}`}
+                    onClick={() => setDetailVote(true)}
+                    aria-pressed={feedback.liked === true}
+                  >
+                    Like
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.swBtn} ${feedback.liked === false ? styles.feedbackBtnActive : ''}`}
+                    onClick={() => setDetailVote(false)}
+                    aria-pressed={feedback.liked === false}
+                  >
+                    Dislike
+                  </button>
+                </div>
+                <label htmlFor="summary-feedback-description" className={styles.feedbackLabel}>
+                  What did you like or dislike?
+                </label>
+                <textarea
+                  id="summary-feedback-description"
+                  className={styles.feedbackInput}
+                  placeholder="Write a short comment..."
+                  value={feedback.description}
+                  onChange={(e) => setDetailDescription(e.target.value)}
+                />
+              </section>
             </div>
           </div>
         </div>
+          );
+        })()
       ) : null}
     </>
   );

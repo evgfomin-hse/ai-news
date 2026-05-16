@@ -16,9 +16,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-SESSION_MAX_AGE_SECONDS = 7 * 24 * 3600
-
-
 def _issue_app_token(user_id: str, name: str, picture: str | None) -> str:
     now = datetime.now(UTC)
     payload = {
@@ -26,7 +23,7 @@ def _issue_app_token(user_id: str, name: str, picture: str | None) -> str:
         "name": name,
         "picture": picture,
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(days=7)).timestamp()),
+        "exp": int((now + timedelta(seconds=settings.session_ttl_seconds)).timestamp()),
     }
     return jwt.encode(
         payload,
@@ -39,7 +36,7 @@ def _set_session_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=settings.session_cookie_name,
         value=token,
-        max_age=SESSION_MAX_AGE_SECONDS,
+        max_age=settings.session_ttl_seconds,
         path=settings.cookie_path,
         httponly=True,
         secure=settings.cookie_secure,

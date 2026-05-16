@@ -1,7 +1,10 @@
+import os
 from typing import Literal, Self
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 
 class Settings(BaseSettings):
@@ -11,9 +14,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
-    )
+    database_url: str = DATABASE_URL
 
     # Same OAuth 2.0 Client ID as VITE_APP_CLIENT_ID on the frontend (Google Sign-In).
     google_client_id: str = ""

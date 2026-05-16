@@ -1,3 +1,20 @@
-https://newsapi.org/
+# Startup
 
-https://www.gdeltproject.org/data.html#googlebigquery
+## Local db
+
+Run docker image of postgres:
+```bash
+docker run --name hse-ai-news-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=hse_ai_news \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+Run repo in dev container, then
+
+```bash
+make setup # Install dependencies and set up python venv
+make dev # Start the dev servers
+```

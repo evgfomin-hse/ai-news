@@ -12,6 +12,7 @@ from app.models import User
 from app.repositories.summary_repository import SummaryRepository
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
+from app.services.score_service import ScoreService
 from app.services.summary_service import (
     PostgresSummaryService,
     SummaryMaintenanceService,
@@ -48,21 +49,24 @@ def get_health_service(db: Annotated[Session, Depends(get_db)]) -> HealthService
 
 
 def get_summary_maintenance_service(
-    db: Annotated[Session, Depends(get_db)],
+        db: Annotated[Session, Depends(get_db)],
 ) -> SummaryMaintenanceService:
     return SummaryMaintenanceService(db)
 
 
 def get_summary_service(db: Annotated[Session, Depends(get_db)]) -> SummaryService:
-    """Read-side summaries from coursework `public.summaries` (Postgres)."""
     return PostgresSummaryService(SummaryRepository(db))
 
 
+def get_score_service(db: Annotated[Session, Depends(get_db)]) -> ScoreService:
+    return ScoreService(db)
+
+
 def get_session_jwt(
-    request: Request,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(bearer_optional)
-    ],
+        request: Request,
+        credentials: Annotated[
+            HTTPAuthorizationCredentials | None, Depends(bearer_optional)
+        ],
 ) -> str:
     raw = request.cookies.get(settings.session_cookie_name)
     if raw:
@@ -73,8 +77,8 @@ def get_session_jwt(
 
 
 def get_current_user(
-    token: Annotated[str, Depends(get_session_jwt)],
-    users: Annotated[UserService, Depends(get_user_service)],
+        token: Annotated[str, Depends(get_session_jwt)],
+        users: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
     try:
         payload = jwt.decode(

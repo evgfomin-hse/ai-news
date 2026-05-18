@@ -1,0 +1,21 @@
+from datetime import datetime
+from sqlalchemy import DateTime, ForeignKey, Integer, text, Boolean, Text
+from sqlalchemy.orm import Mapped, mapped_column
+from app.models.base import Base
+
+
+class Score(Base):
+    __tablename__ = "scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    summary_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("summaries.id"), nullable=False, index=True
+    )
+    score: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        server_default=text("CURRENT_TIMESTAMP"),
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)

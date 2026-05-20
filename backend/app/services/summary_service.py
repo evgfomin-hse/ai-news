@@ -5,10 +5,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.core.time import naive_utc_now
 from app.repositories.summary_repository import SummaryRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.summary import SummaryItem, UserSummaryResponse
-from app.services.transport_service import naive_utc_now
 
 
 class SummaryService(ABC):

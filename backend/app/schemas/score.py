@@ -1,14 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class ScoreCreateRequest(BaseModel):
-    summary_id: int
-    value: bool
-    description: str
+class ScoreUpsertRequest(BaseModel):
+    summary_id: int = Field(..., ge=1, description="Target summary row id.")
+    value: bool = Field(..., description="True = thumbs-up, False = thumbs-down.")
+    description: str | None = Field(default=None, max_length=4096)
 
 
-class ScoreCreateResponse(BaseModel):
+class ScoreOut(BaseModel):
+    """Response shape; maps ORM `score` column onto the public `value` field."""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: int
     summary_id: int
-    value: bool
-    description: str
+    value: bool | None = Field(default=None, validation_alias="score")
+    description: str | None = None

@@ -1,21 +1,29 @@
-from datetime import datetime, UTC
-
 from sqlalchemy.orm import Session
 
-from app.models import User
-from app.models.score import Score
+from app.core.time import naive_utc_now
+from app.models import Score
 from app.repositories.score_repository import ScoreRepository
-from app.repositories.user_repository import UserRepository
-from app.schemas.score import ScoreCreateRequest
+from app.repositories.summary_repository import SummaryRepository
+from app.schemas.score import ScoreUpsertRequest
+
+
+class SummaryNotFoundError(LookupError):
+    """Raised when a score targets a summary that does not exist for the user."""
 
 
 class ScoreService:
     def __init__(self, session: Session) -> None:
         self._session = session
-        self._score = ScoreRepository(session)
+        self._scores = ScoreRepository(session)
+        self._summaries = SummaryRepository(session)
 
-    def get_by_summary_id(self, summary_id: int) -> Score:
-        return self._score.get_by_summary_id(summary_id)
+    def get_by_summary_id(self, summary_id: int) -> Score | None:
+        return self._scores.get_by_summary_id(summary_id)
 
-    def upsert_score(self, score: ScoreCreateRequest) -> None:
-        return self._score.upsert(score,datetime.now(UTC))
+    def upsert_for_user(self, user_id: int, request: ScoreUpsertRequest) -> Score:
+        if not self._summaries.exists_for_user(request.summary_id, user_id=user_id):
+            raise SummaryNotFoundError(request.summary_id)
+        row = self._scores.upsert(request, now=naive_utc_now())
+        self._session.commit()
+        self._session.refresh(row)
+        return row

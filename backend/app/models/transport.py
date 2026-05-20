@@ -4,7 +4,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base
+from app.models.base import Base
 
 
 class Transport(Base):

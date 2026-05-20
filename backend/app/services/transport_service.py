@@ -1,16 +1,11 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
+from app.core.time import naive_utc_now
 from app.models import Transport
 from app.repositories.transport_repository import TransportRepository
 
 TELEGRAM_TOKEN_KEY = "telegramBotToken"
 TELEGRAM_CHAT_ID_KEY = "telegramChatId"
-
-
-def naive_utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def telegram_token_from_row(row: Transport | None) -> str:

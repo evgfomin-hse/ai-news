@@ -15,11 +15,11 @@ from app.schemas.transport import (
     TransportOut,
     TransportPatch,
 )
+from app.core.time import naive_utc_now
 from app.services.transport_service import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_TOKEN_KEY,
     TransportService,
-    naive_utc_now,
     telegram_chat_id_from_row,
     telegram_token_from_row,
 )

@@ -10,6 +10,13 @@ class SummaryRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def exists_for_user(self, summary_id: int, *, user_id: int) -> bool:
+        return self._session.scalar(
+            select(func.count())
+            .select_from(Summary)
+            .where(Summary.id == summary_id, Summary.user_id == user_id)
+        ) > 0
+
     def count_for_user(self, user_id: int) -> int:
         return int(
             self._session.scalar(

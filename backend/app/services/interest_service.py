@@ -1,13 +1,8 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
+from app.core.time import naive_utc_now
 from app.models import Interest
 from app.repositories.interest_repository import InterestRepository
-
-
-def naive_utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class InterestService:

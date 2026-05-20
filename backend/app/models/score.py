@@ -1,10 +1,14 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, Integer, text, Boolean, Text
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.models.base import Base
 
 
 class Score(Base):
+    """Coursework `public.scores` — per-summary thumbs-up/down feedback row."""
+
     __tablename__ = "scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

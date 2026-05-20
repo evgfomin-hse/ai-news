@@ -1,35 +1,34 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Score
-from app.schemas.score import ScoreCreateRequest
+from app.schemas.score import ScoreUpsertRequest
 
 
 class ScoreRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_by_summary_id(self, summary_id: int):
-        row = self._session.execute(select(Score).where(Score.summary_id == summary_id))
+    def get_by_summary_id(self, summary_id: int) -> Score | None:
+        return self._session.scalar(select(Score).where(Score.summary_id == summary_id))
 
-
-        return row
-
-    def upsert(self, score: ScoreCreateRequest, now):
-        row = self.get_by_summary_id(Score.summary_id)
+    def upsert(self, request: ScoreUpsertRequest, *, now: datetime) -> Score:
+        row = self.get_by_summary_id(request.summary_id)
         if row is None:
             row = Score(
-                summary_id=Score.summary_id,
-                score=Score.score,
-                description=Score.description,
+                summary_id=request.summary_id,
+                score=request.value,
+                description=request.description,
                 created_at=now,
+                updated_at=now,
             )
             self._session.add(row)
         else:
-            row.description = Score.description or None
-            row.score = Score.score or None
+            row.score = request.value
+            row.description = request.description
             row.updated_at = now
-            self._session.add(row)
         self._session.flush()
         self._session.refresh(row)
         return row

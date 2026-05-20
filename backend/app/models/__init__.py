@@ -7,4 +7,4 @@ from app.models.summary import Summary
 from app.models.transport import Transport
 from app.models.user import User
 
-__all__ = ["Base", "Interest", "Summary", "Transport", "User", "Score"]
+__all__ = ["Base", "Interest", "Score", "Summary", "Transport", "User"]

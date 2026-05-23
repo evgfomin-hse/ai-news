@@ -25,7 +25,10 @@ def health_db(health: Annotated[HealthService, Depends(get_health_service)]):
             detail={
                 "error": "database_unavailable",
                 "message": msg,
-                "hint": "Set DATABASE_URL in backend/.env to your real PostgreSQL user, password, host, port, and database.",
+                "hint": (
+                    "Set DATABASE_URL in backend/.env to your real PostgreSQL "
+                    "user, password, host, port, and database."
+                ),
             },
         ) from exc
     return {"database": "ok"}

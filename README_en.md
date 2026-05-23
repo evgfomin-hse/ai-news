@@ -30,7 +30,7 @@ You need: **Docker**, **Python 3.11**, **uv**, **Node 24**.
 bash backend/db.sh
 ```
 
-This starts a `hse-ai-news-postgres` container on port 5432. The HSE coursework DDL for `interests`, `summaries`, `transports`, and `scores` is expected to exist; see `backend/.env.example` for the schema.
+Starts a `hse-ai-news-postgres` container on port 5432. The HSE coursework DDL for `interests`, `summaries`, `transports`, and `scores` is expected to exist; see `backend/.env.example` for the schema.
 
 ### 2. Backend
 
@@ -69,7 +69,7 @@ cd e2e && npm install && npm run install:browsers && npm test
 
 ## Documentation
 
-- English README: this file (also [`README_en.md`](README_en.md))
+- This file is the English README; for parity see [`README.md`](README.md)
 - Backend setup: [`backend/README.md`](backend/README.md)
 - Frontend setup: [`frontend/README.md`](frontend/README.md)
 - Audit / project state: [`docs/`](docs/)

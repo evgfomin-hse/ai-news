@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 def _issue_app_token(user_id: str, name: str, picture: str | None) -> str:
     now = datetime.now(UTC)
     payload = {
@@ -63,7 +64,10 @@ def google_login(
     if not settings.google_client_id.strip():
         raise HTTPException(
             status_code=503,
-            detail="Server is missing GOOGLE_CLIENT_ID; set it to the same OAuth client ID as the frontend.",
+            detail=(
+                "Server is missing GOOGLE_CLIENT_ID; "
+                "set it to the same OAuth client ID as the frontend."
+            ),
         )
     try:
         idinfo = id_token.verify_oauth2_token(
@@ -82,7 +86,7 @@ def google_login(
     email = idinfo.get("email")
     if not isinstance(email, str):
         email = None
-    name = (idinfo.get("name") or (email.split("@", 1)[0] if email else None) or "user")
+    name = idinfo.get("name") or (email.split("@", 1)[0] if email else None) or "user"
     picture = idinfo.get("picture")
     if isinstance(picture, str) and not picture.strip():
         picture = None

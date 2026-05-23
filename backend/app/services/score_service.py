@@ -20,6 +20,16 @@ class ScoreService:
     def get_by_summary_id(self, summary_id: int) -> Score | None:
         return self._scores.get_by_summary_id(summary_id)
 
+    def get_for_user_summary(self, user_id: int, summary_id: int) -> Score | None:
+        """Score for `summary_id`, only if that summary belongs to `user_id`.
+
+        Raises SummaryNotFoundError if the summary doesn't exist or isn't owned by the user.
+        Returns None if the summary exists for the user but has no score yet.
+        """
+        if not self._summaries.exists_for_user(summary_id, user_id=user_id):
+            raise SummaryNotFoundError(summary_id)
+        return self._scores.get_by_summary_id(summary_id)
+
     def upsert_for_user(self, user_id: int, request: ScoreUpsertRequest) -> Score:
         if not self._summaries.exists_for_user(request.summary_id, user_id=user_id):
             raise SummaryNotFoundError(request.summary_id)

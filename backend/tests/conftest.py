@@ -18,8 +18,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.api.dependencies import get_current_user, get_db
 from app.main import app
-from app.models import Base, Interest, Score, Summary, User
-
+from app.models import Base, Interest, NewsArticle, Score, Summary, User
 
 # `Transport` uses Postgres JSONB and is intentionally excluded from the SQLite schema —
 # tests that need transports must mock at the service layer instead.
@@ -28,6 +27,7 @@ _SQLITE_TABLES = (
     Interest.__table__,
     Summary.__table__,
     Score.__table__,
+    NewsArticle.__table__,
 )
 
 

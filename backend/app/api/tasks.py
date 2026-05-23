@@ -8,6 +8,7 @@ from app.services.summary_service import SummaryMaintenanceService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
+
 @router.post("/summary/run-bulk")
 def run_bulk_summary_generation(
     request: Request,

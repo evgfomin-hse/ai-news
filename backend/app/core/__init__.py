@@ -3,4 +3,4 @@
 from app.core.config import Settings, settings
 from app.core.database import SessionLocal, engine
 
-__all__ = ["Settings", "SessionLocal", "engine", "settings"]
+__all__ = ["SessionLocal", "Settings", "engine", "settings"]

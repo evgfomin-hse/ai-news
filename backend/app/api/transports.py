@@ -5,7 +5,12 @@ from typing import Annotated
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.dependencies import get_current_user, get_transport_service
+from app.api.dependencies import (
+    get_current_user,
+    get_telegram_sender,
+    get_transport_service,
+)
+from app.core.time import naive_utc_now
 from app.models import Transport, User
 from app.schemas.transport import (
     CaptureHelloOut,
@@ -15,7 +20,7 @@ from app.schemas.transport import (
     TransportOut,
     TransportPatch,
 )
-from app.core.time import naive_utc_now
+from app.services.telegram_service import TelegramSender, TelegramSendError
 from app.services.transport_service import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_TOKEN_KEY,
@@ -77,7 +82,10 @@ def patch_transport(
             if not re.fullmatch(r"-?\d+", s):
                 raise HTTPException(
                     status_code=400,
-                    detail="telegramChatId must be a numeric Telegram chat id (groups may be negative).",
+                    detail=(
+                        "telegramChatId must be a numeric Telegram chat id "
+                        "(groups may be negative)."
+                    ),
                 )
             blob[TELEGRAM_CHAT_ID_KEY] = s
 
@@ -212,7 +220,8 @@ def capture_hello_message(
                 status_code=409,
                 detail=(
                     "This bot has a webhook set; Telegram does not allow getUpdates. "
-                    "Delete the webhook (BotFather /deleteWebhook or API) or enter chat id manually."
+                    "Delete the webhook (BotFather /deleteWebhook or API) "
+                    "or enter chat id manually."
                 ),
             )
         raise HTTPException(status_code=400, detail=f"Telegram: {desc}")
@@ -225,7 +234,10 @@ def capture_hello_message(
         return CaptureHelloOut(
             linked=False,
             chatId=None,
-            hint='No matching message yet. Open Telegram, open a chat with your bot, and send exactly: hello',
+            hint=(
+                "No matching message yet. Open Telegram, open a chat with your bot, "
+                "and send exactly: hello"
+            ),
         )
 
     update_id, chat_id_str = picked
@@ -247,6 +259,7 @@ def capture_hello_message(
 def send_telegram_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
+    sender: Annotated[TelegramSender, Depends(get_telegram_sender)],
     body: SendMessageBody,
 ) -> SendMessageOut:
     row = transports.get_active_for_user(user.id)
@@ -262,34 +275,11 @@ def send_telegram_message(
             status_code=400,
             detail="Configure telegramChatId (your chat with the bot) before sending.",
         )
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
-        r = requests.post(
-            url,
-            json={"chat_id": chat_id, "text": body.text},
-            timeout=15,
-        )
-    except requests.RequestException as exc:
-        logger.warning("Telegram sendMessage failed: %s", exc)
-        raise HTTPException(
-            status_code=502,
-            detail="Could not reach Telegram.",
-        ) from exc
-    try:
-        payload = r.json()
-    except ValueError:
-        raise HTTPException(
-            status_code=502, detail="Telegram returned a non-JSON response."
-        ) from None
-    if not payload.get("ok"):
-        desc = payload.get("description") or "Unknown error"
-        raise HTTPException(status_code=400, detail=f"Telegram: {desc}")
-    result = payload.get("result") or {}
-    mid = result.get("message_id")
-    if isinstance(mid, int):
-        mid_int: int | None = mid
-    elif isinstance(mid, str) and mid.isdigit():
-        mid_int = int(mid)
-    else:
-        mid_int = None
-    return SendMessageOut(ok=True, telegramMessageId=mid_int)
+        mid = sender.send(token=token, chat_id=chat_id, text=body.text)
+    except TelegramSendError as exc:
+        # network / non_json → 502 (we couldn't reach Telegram or parse a response).
+        # telegram_error / missing_message_id → 400 (Telegram rejected the call).
+        status = 502 if exc.kind in ("network", "non_json") else 400
+        raise HTTPException(status_code=status, detail=exc.message) from exc
+    return SendMessageOut(ok=True, telegramMessageId=mid)

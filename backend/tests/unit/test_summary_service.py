@@ -23,9 +23,7 @@ class _FakeRepo:
     def count_for_user(self, user_id: int) -> int:
         return len(self._rows)
 
-    def list_page_for_user(
-        self, user_id: int, *, offset: int, limit: int
-    ) -> list[_FakeRow]:
+    def list_page_for_user(self, user_id: int, *, offset: int, limit: int) -> list[_FakeRow]:
         self.list_calls.append((user_id, offset, limit))
         return self._rows[offset : offset + limit]
 

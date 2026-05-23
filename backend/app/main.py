@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import register_routes
 from app.core.config import settings
 from app.lifespan import lifespan
-from app.api import register_routes
 
 app = FastAPI(lifespan=lifespan)
 

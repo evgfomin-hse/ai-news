@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import logging
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app.api.dependencies import (
+    _build_news_fetcher,
+    _build_summarizer,
+    _build_telegram_sender,
+)
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.services.summary_service import SummaryMaintenanceService
@@ -20,7 +26,13 @@ SUMMARY_JOB_ID = "summary_generation_midnight"
 def _nightly_summary_job() -> None:
     db = SessionLocal()
     try:
-        stats = SummaryMaintenanceService(db).run_bulk_for_all_users()
+        maintenance = SummaryMaintenanceService(
+            db,
+            summarizer=_build_summarizer(),
+            fetcher=_build_news_fetcher(db),
+            telegram_sender=_build_telegram_sender(),
+        )
+        stats = maintenance.run_bulk_for_all_users()
         logger.info("Nightly summary job finished: %s", stats)
     except Exception:
         logger.exception("Nightly summary job failed")

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 from app.api.dependencies import get_current_user, get_score_service
 from app.models import User
@@ -23,4 +23,26 @@ def upsert_score(
             status_code=404,
             detail="Summary not found for this user.",
         ) from exc
+    return ScoreOut.model_validate(row)
+
+
+@router.get("/{summary_id}", response_model=ScoreOut | None)
+def get_score(
+    user: Annotated[User, Depends(get_current_user)],
+    scores: Annotated[ScoreService, Depends(get_score_service)],
+    summary_id: Annotated[int, Path(ge=1)],
+) -> ScoreOut | None:
+    """Returns the stored score for `summary_id`, or null if none yet.
+
+    404 if the summary doesn't exist or doesn't belong to the current user.
+    """
+    try:
+        row = scores.get_for_user_summary(user.id, summary_id)
+    except SummaryNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Summary not found for this user.",
+        ) from exc
+    if row is None:
+        return None
     return ScoreOut.model_validate(row)

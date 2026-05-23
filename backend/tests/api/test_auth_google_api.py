@@ -11,9 +11,7 @@ def with_google_client_id(monkeypatch):
     monkeypatch.setattr(settings, "google_client_id", "test-google-client-id")
 
 
-def test_google_login_returns_503_when_client_id_missing(
-    client: TestClient, monkeypatch
-):
+def test_google_login_returns_503_when_client_id_missing(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "google_client_id", "")
     resp = client.post("/auth/google-login", json={"token": "x"})
     assert resp.status_code == 503
@@ -68,19 +66,13 @@ def test_google_login_creates_user_and_sets_session_cookie(
     assert settings.session_cookie_name in resp.cookies
 
 
-def test_e2e_bootstrap_session_requires_matching_secret(
-    client: TestClient, monkeypatch
-):
+def test_e2e_bootstrap_session_requires_matching_secret(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "e2e_bootstrap_secret", "topsecret")
-    bad = client.post(
-        "/auth/e2e/bootstrap-session", headers={"x-e2e-bootstrap-secret": "wrong"}
-    )
+    bad = client.post("/auth/e2e/bootstrap-session", headers={"x-e2e-bootstrap-secret": "wrong"})
     assert bad.status_code == 401
 
 
-def test_e2e_bootstrap_session_creates_user_with_secret(
-    client: TestClient, monkeypatch
-):
+def test_e2e_bootstrap_session_creates_user_with_secret(client: TestClient, monkeypatch):
     monkeypatch.setattr(settings, "e2e_bootstrap_secret", "topsecret")
     resp = client.post(
         "/auth/e2e/bootstrap-session", headers={"x-e2e-bootstrap-secret": "topsecret"}

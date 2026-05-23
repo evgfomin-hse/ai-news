@@ -85,9 +85,8 @@ def fake_requests(monkeypatch):
 
 # ---------- GET /transports ----------------------------------------------------
 
-def test_get_returns_empty_when_no_transport(
-    authed_client: TestClient, stub_transports
-):
+
+def test_get_returns_empty_when_no_transport(authed_client: TestClient, stub_transports):
     resp = authed_client.get("/transports")
     assert resp.status_code == 200
     assert resp.json() == {
@@ -97,9 +96,7 @@ def test_get_returns_empty_when_no_transport(
     }
 
 
-def test_get_reflects_configured_telegram(
-    authed_client: TestClient, stub_transports
-):
+def test_get_reflects_configured_telegram(authed_client: TestClient, stub_transports):
     stub_transports.row = _Row(
         id=7,
         data={"telegramBotToken": "abc", "telegramChatId": "123"},
@@ -110,9 +107,8 @@ def test_get_reflects_configured_telegram(
 
 # ---------- PATCH /transports --------------------------------------------------
 
-def test_patch_no_fields_returns_current_state(
-    authed_client: TestClient, stub_transports
-):
+
+def test_patch_no_fields_returns_current_state(authed_client: TestClient, stub_transports):
     resp = authed_client.patch("/transports", json={})
     assert resp.status_code == 200
     assert resp.json()["telegramConfigured"] is False
@@ -128,35 +124,28 @@ def test_patch_saves_token_and_chat_id(authed_client: TestClient, stub_transport
     assert stub_transports.row.data["telegramChatId"] == "100"
 
 
-def test_patch_blank_token_clears_token_and_chat(
-    authed_client: TestClient, stub_transports
-):
-    stub_transports.row = _Row(
-        data={"telegramBotToken": "old", "telegramChatId": "100"}
-    )
+def test_patch_blank_token_clears_token_and_chat(authed_client: TestClient, stub_transports):
+    stub_transports.row = _Row(data={"telegramBotToken": "old", "telegramChatId": "100"})
     resp = authed_client.patch("/transports", json={"telegramBotToken": "   "})
     assert resp.status_code == 200
     assert "telegramBotToken" not in stub_transports.row.data
     assert "telegramChatId" not in stub_transports.row.data
 
 
-def test_patch_rejects_non_numeric_chat_id(
-    authed_client: TestClient, stub_transports
-):
+def test_patch_rejects_non_numeric_chat_id(authed_client: TestClient, stub_transports):
     resp = authed_client.patch("/transports", json={"telegramChatId": "abc"})
     assert resp.status_code == 400
 
 
 # ---------- POST /transports/telegram-test ------------------------------------
 
+
 def test_telegram_test_requires_token(authed_client: TestClient, stub_transports):
     resp = authed_client.post("/transports/telegram-test")
     assert resp.status_code == 400
 
 
-def test_telegram_test_returns_bot_info(
-    authed_client: TestClient, stub_transports, fake_requests
-):
+def test_telegram_test_returns_bot_info(authed_client: TestClient, stub_transports, fake_requests):
     stub_transports.row = _Row(data={"telegramBotToken": "tok"})
     _, responses = fake_requests
     responses["get"] = _Resp({"ok": True, "result": {"id": 42, "username": "mybot"}})
@@ -191,9 +180,7 @@ def test_telegram_test_400_when_telegram_says_not_ok(
     assert "Unauthorized" in resp.json()["detail"]
 
 
-def test_telegram_test_502_on_non_json(
-    authed_client: TestClient, stub_transports, fake_requests
-):
+def test_telegram_test_502_on_non_json(authed_client: TestClient, stub_transports, fake_requests):
     stub_transports.row = _Row(data={"telegramBotToken": "tok"})
     _, responses = fake_requests
     responses["get"] = _Resp(ValueError("not json"))
@@ -204,17 +191,14 @@ def test_telegram_test_502_on_non_json(
 
 # ---------- POST /transports/telegram-capture-hello ---------------------------
 
+
 def test_capture_hello_requires_token(authed_client: TestClient, stub_transports):
     resp = authed_client.post("/transports/telegram-capture-hello")
     assert resp.status_code == 400
 
 
-def test_capture_hello_returns_existing_link(
-    authed_client: TestClient, stub_transports
-):
-    stub_transports.row = _Row(
-        data={"telegramBotToken": "tok", "telegramChatId": "777"}
-    )
+def test_capture_hello_returns_existing_link(authed_client: TestClient, stub_transports):
+    stub_transports.row = _Row(data={"telegramBotToken": "tok", "telegramChatId": "777"})
     resp = authed_client.post("/transports/telegram-capture-hello")
     assert resp.status_code == 200
     assert resp.json() == {"linked": True, "chatId": "777", "hint": None}
@@ -274,6 +258,7 @@ def test_capture_hello_409_when_webhook_set(
 
 # ---------- POST /transports/send-message -------------------------------------
 
+
 def test_send_message_requires_token(authed_client: TestClient, stub_transports):
     resp = authed_client.post("/transports/send-message", json={"text": "hi"})
     assert resp.status_code == 400
@@ -286,12 +271,8 @@ def test_send_message_requires_chat_id(authed_client: TestClient, stub_transport
     assert "chat" in resp.json()["detail"].lower()
 
 
-def test_send_message_success(
-    authed_client: TestClient, stub_transports, fake_requests
-):
-    stub_transports.row = _Row(
-        data={"telegramBotToken": "tok", "telegramChatId": "100"}
-    )
+def test_send_message_success(authed_client: TestClient, stub_transports, fake_requests):
+    stub_transports.row = _Row(data={"telegramBotToken": "tok", "telegramChatId": "100"})
     _, responses = fake_requests
     responses["post"] = _Resp({"ok": True, "result": {"message_id": 7}})
 
@@ -303,9 +284,7 @@ def test_send_message_success(
 def test_send_message_400_when_telegram_rejects(
     authed_client: TestClient, stub_transports, fake_requests
 ):
-    stub_transports.row = _Row(
-        data={"telegramBotToken": "tok", "telegramChatId": "100"}
-    )
+    stub_transports.row = _Row(data={"telegramBotToken": "tok", "telegramChatId": "100"})
     _, responses = fake_requests
     responses["post"] = _Resp({"ok": False, "description": "chat not found"})
 
@@ -313,12 +292,8 @@ def test_send_message_400_when_telegram_rejects(
     assert resp.status_code == 400
 
 
-def test_send_message_502_on_network_error(
-    authed_client: TestClient, stub_transports, monkeypatch
-):
-    stub_transports.row = _Row(
-        data={"telegramBotToken": "tok", "telegramChatId": "100"}
-    )
+def test_send_message_502_on_network_error(authed_client: TestClient, stub_transports, monkeypatch):
+    stub_transports.row = _Row(data={"telegramBotToken": "tok", "telegramChatId": "100"})
 
     def _raise(*_a, **_k):
         raise transports_api.requests.RequestException("boom")

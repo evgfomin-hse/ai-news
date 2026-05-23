@@ -12,14 +12,44 @@ from app.models import User
 from app.repositories.summary_repository import SummaryRepository
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
+from app.services.llm_service import LLMSummarizer, OpenRouterSummarizer
+from app.services.news_service import NewsFetcherService
 from app.services.score_service import ScoreService
 from app.services.summary_service import (
     PostgresSummaryService,
     SummaryMaintenanceService,
     SummaryService,
 )
+from app.services.telegram_service import RequestsTelegramSender, TelegramSender
 from app.services.transport_service import TransportService
 from app.services.user_service import UserService
+
+
+def _build_summarizer() -> LLMSummarizer | None:
+    """Returns a configured OpenRouter summarizer, or None when the API key is unset."""
+    if not settings.openrouter_api_key.strip():
+        return None
+    return OpenRouterSummarizer(
+        api_key=settings.openrouter_api_key,
+        model=settings.openrouter_model,
+    )
+
+
+def _build_news_fetcher(db: Session) -> NewsFetcherService | None:
+    """Returns a configured NewsAPI fetcher, or None when the API key is unset."""
+    if not settings.news_api_key.strip():
+        return None
+    return NewsFetcherService(
+        db,
+        api_key=settings.news_api_key,
+        page_size=settings.news_fetch_limit,
+    )
+
+
+def _build_telegram_sender() -> TelegramSender:
+    """The sender takes a per-user bot token at call time, so no global key check here."""
+    return RequestsTelegramSender()
+
 
 bearer_optional = HTTPBearer(auto_error=False)
 
@@ -49,9 +79,18 @@ def get_health_service(db: Annotated[Session, Depends(get_db)]) -> HealthService
 
 
 def get_summary_maintenance_service(
-        db: Annotated[Session, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> SummaryMaintenanceService:
-    return SummaryMaintenanceService(db)
+    return SummaryMaintenanceService(
+        db,
+        summarizer=_build_summarizer(),
+        fetcher=_build_news_fetcher(db),
+        telegram_sender=_build_telegram_sender(),
+    )
+
+
+def get_telegram_sender() -> TelegramSender:
+    return _build_telegram_sender()
 
 
 def get_summary_service(db: Annotated[Session, Depends(get_db)]) -> SummaryService:
@@ -63,10 +102,8 @@ def get_score_service(db: Annotated[Session, Depends(get_db)]) -> ScoreService:
 
 
 def get_session_jwt(
-        request: Request,
-        credentials: Annotated[
-            HTTPAuthorizationCredentials | None, Depends(bearer_optional)
-        ],
+    request: Request,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_optional)],
 ) -> str:
     raw = request.cookies.get(settings.session_cookie_name)
     if raw:
@@ -77,8 +114,8 @@ def get_session_jwt(
 
 
 def get_current_user(
-        token: Annotated[str, Depends(get_session_jwt)],
-        users: Annotated[UserService, Depends(get_user_service)],
+    token: Annotated[str, Depends(get_session_jwt)],
+    users: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
     try:
         payload = jwt.decode(

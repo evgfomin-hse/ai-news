@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from . import auth, health, interests, summary, score, tasks, transports, users
+from . import auth, health, interests, score, summary, tasks, transports, users
 
 
 def register_routes(app: FastAPI) -> None:

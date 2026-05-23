@@ -14,6 +14,20 @@ class ScoreRepository:
     def get_by_summary_id(self, summary_id: int) -> Score | None:
         return self._session.scalar(select(Score).where(Score.summary_id == summary_id))
 
+    def list_recent_for_user(self, user_id: int, *, limit: int) -> list[Score]:
+        """Most recently updated scores for summaries belonging to `user_id`."""
+        from app.models import Summary
+
+        return list(
+            self._session.scalars(
+                select(Score)
+                .join(Summary, Summary.id == Score.summary_id)
+                .where(Summary.user_id == user_id)
+                .order_by(Score.updated_at.desc().nulls_last(), Score.id.desc())
+                .limit(limit)
+            ).all()
+        )
+
     def upsert(self, request: ScoreUpsertRequest, *, now: datetime) -> Score:
         row = self.get_by_summary_id(request.summary_id)
         if row is None:

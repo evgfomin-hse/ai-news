@@ -44,9 +44,7 @@ def test_put_score_returns_404_for_unknown_summary(authed_client: TestClient):
     assert "Summary" in resp.json()["detail"]
 
 
-def test_put_score_returns_404_for_other_users_summary(
-    authed_client: TestClient, db: Session
-):
+def test_put_score_returns_404_for_other_users_summary(authed_client: TestClient, db: Session):
     other = User(google_id="other", email="other@example.com")
     db.add(other)
     db.commit()
@@ -80,3 +78,53 @@ def test_put_score_is_idempotent(authed_client: TestClient, db: Session, user: U
     assert first["id"] == second["id"]
     assert second["value"] is False
     assert second["description"] == "b"
+
+
+def test_get_score_requires_authentication(client: TestClient):
+    resp = client.get("/score/1")
+    assert resp.status_code == 401
+
+
+def test_get_score_returns_existing_row(authed_client: TestClient, db: Session, user: User):
+    summary = _add_summary(db, user.id)
+    authed_client.put(
+        "/score",
+        json={"summary_id": summary.id, "value": True, "description": "nice"},
+    )
+
+    resp = authed_client.get(f"/score/{summary.id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["summary_id"] == summary.id
+    assert body["value"] is True
+    assert body["description"] == "nice"
+
+
+def test_get_score_returns_null_when_summary_has_no_score(
+    authed_client: TestClient, db: Session, user: User
+):
+    summary = _add_summary(db, user.id)
+    resp = authed_client.get(f"/score/{summary.id}")
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
+def test_get_score_returns_404_for_unknown_summary(authed_client: TestClient):
+    resp = authed_client.get("/score/9999")
+    assert resp.status_code == 404
+
+
+def test_get_score_returns_404_for_other_users_summary(authed_client: TestClient, db: Session):
+    other = User(google_id="other", email="other2@example.com")
+    db.add(other)
+    db.commit()
+    db.refresh(other)
+    foreign = _add_summary(db, other.id)
+
+    resp = authed_client.get(f"/score/{foreign.id}")
+    assert resp.status_code == 404
+
+
+def test_get_score_rejects_invalid_summary_id(authed_client: TestClient):
+    assert authed_client.get("/score/0").status_code == 422
+    assert authed_client.get("/score/-1").status_code == 422

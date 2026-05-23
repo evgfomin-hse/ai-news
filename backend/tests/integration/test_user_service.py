@@ -27,8 +27,6 @@ def test_get_or_create_delegates_to_repository(db: Session):
         google_id="svc-sub", name="S", picture=None, email="s@example.com"
     )
     assert created.id is not None
-    again = UserService(db).get_or_create(
-        google_id="svc-sub", name="S2", picture=None, email=None
-    )
+    again = UserService(db).get_or_create(google_id="svc-sub", name="S2", picture=None, email=None)
     assert again.id == created.id
     assert again.name == "S2"

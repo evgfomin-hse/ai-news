@@ -40,9 +40,7 @@ def test_upsert_inserts_new_row(db: Session, summary: Summary):
     assert row.updated_at == now
 
 
-def test_upsert_updates_existing_row_without_changing_created_at(
-    db: Session, summary: Summary
-):
+def test_upsert_updates_existing_row_without_changing_created_at(db: Session, summary: Summary):
     repo = ScoreRepository(db)
     t0 = datetime(2024, 5, 1, 12, 0)
     t1 = t0 + timedelta(hours=1)

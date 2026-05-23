@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
+  getScore,
   getUserSummaryPage,
+  putScore,
   type SummaryListItem,
   type UserSummaryResponse,
 } from '../../shared/api';
@@ -126,7 +128,11 @@ const DropCountdown: FC = () => {
 type SummaryFeedback = {
   liked: boolean | null;
   description: string;
+  saving: boolean;
+  error: string | null;
 };
+
+const DESCRIPTION_DEBOUNCE_MS = 600;
 
 const Home: FC = () => {
   const { user } = useAuth();
@@ -136,6 +142,7 @@ const Home: FC = () => {
   const [detailItem, setDetailItem] = useState<SummaryListItem | null>(null);
   const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<Record<string, SummaryFeedback>>({});
   const modalCloseRef = useRef<HTMLButtonElement>(null);
+  const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSummaryPage = useCallback(async (page: number) => {
     setLoading(true);
@@ -173,33 +180,110 @@ const Home: FC = () => {
     // Placeholder: CSV export will be implemented later.
   };
 
+  const persistScore = useCallback(
+    async (summaryId: string, liked: boolean, description: string) => {
+      const numericId = Number(summaryId);
+      if (!Number.isInteger(numericId) || numericId <= 0) return;
+      setFeedbackBySummaryId((prev) => {
+        const current = prev[summaryId] ?? { liked, description, saving: false, error: null };
+        return { ...prev, [summaryId]: { ...current, saving: true, error: null } };
+      });
+      try {
+        await putScore(numericId, liked, description.trim() ? description : null);
+        setFeedbackBySummaryId((prev) => {
+          const current = prev[summaryId];
+          if (!current) return prev;
+          return { ...prev, [summaryId]: { ...current, saving: false, error: null } };
+        });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Could not save your feedback';
+        setFeedbackBySummaryId((prev) => {
+          const current = prev[summaryId];
+          if (!current) return prev;
+          return { ...prev, [summaryId]: { ...current, saving: false, error: message } };
+        });
+      }
+    },
+    [],
+  );
+
   const setDetailVote = (liked: boolean) => {
     if (!detailItem) return;
+    const summaryId = detailItem.id;
+    if (descriptionTimerRef.current != null) {
+      clearTimeout(descriptionTimerRef.current);
+      descriptionTimerRef.current = null;
+    }
     setFeedbackBySummaryId((prev) => {
-      const current = prev[detailItem.id] ?? { liked: null, description: '' };
-      return {
-        ...prev,
-        [detailItem.id]: {
-          ...current,
-          liked,
-        },
-      };
+      const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
+      return { ...prev, [summaryId]: { ...current, liked } };
     });
+    const existing = feedbackBySummaryId[summaryId];
+    const description = existing?.description ?? '';
+    void persistScore(summaryId, liked, description);
   };
 
   const setDetailDescription = (description: string) => {
     if (!detailItem) return;
+    const summaryId = detailItem.id;
     setFeedbackBySummaryId((prev) => {
-      const current = prev[detailItem.id] ?? { liked: null, description: '' };
-      return {
-        ...prev,
-        [detailItem.id]: {
-          ...current,
-          description,
-        },
-      };
+      const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
+      return { ...prev, [summaryId]: { ...current, description } };
     });
+    // Backend requires a vote (PUT /score requires `value`), so we only persist description after one is cast.
+    const existing = feedbackBySummaryId[summaryId];
+    const liked = existing?.liked;
+    if (liked === undefined || liked === null) return;
+    if (descriptionTimerRef.current != null) {
+      clearTimeout(descriptionTimerRef.current);
+    }
+    descriptionTimerRef.current = setTimeout(() => {
+      descriptionTimerRef.current = null;
+      void persistScore(summaryId, liked, description);
+    }, DESCRIPTION_DEBOUNCE_MS);
   };
+
+  useEffect(() => {
+    return () => {
+      if (descriptionTimerRef.current != null) {
+        clearTimeout(descriptionTimerRef.current);
+        descriptionTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Load existing score from the server the first time a summary's modal is opened in this session.
+  useEffect(() => {
+    if (!detailItem) return;
+    const summaryId = detailItem.id;
+    if (feedbackBySummaryId[summaryId] !== undefined) return;
+    const numericId = Number(summaryId);
+    if (!Number.isInteger(numericId) || numericId <= 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const score = await getScore(numericId);
+        if (cancelled) return;
+        setFeedbackBySummaryId((prev) => {
+          if (prev[summaryId] !== undefined) return prev;
+          return {
+            ...prev,
+            [summaryId]: {
+              liked: score?.value ?? null,
+              description: score?.description ?? '',
+              saving: false,
+              error: null,
+            },
+          };
+        });
+      } catch {
+        // Leave feedback unseeded; the user can still vote, which will (re)try the server.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [detailItem, feedbackBySummaryId]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const listDateLabel = formatListDate(todayIso);
@@ -352,7 +436,10 @@ const Home: FC = () => {
 
       {detailItem ? (
         (() => {
-          const feedback = feedbackBySummaryId[detailItem.id] ?? { liked: null, description: '' };
+          const feedback =
+            feedbackBySummaryId[detailItem.id] ??
+            ({ liked: null, description: '', saving: false, error: null } as SummaryFeedback);
+          const voteLocked = feedback.liked === null || feedback.liked === undefined;
           return (
         <div
           className={styles.modalBackdrop}
@@ -411,10 +498,25 @@ const Home: FC = () => {
                 <textarea
                   id="summary-feedback-description"
                   className={styles.feedbackInput}
-                  placeholder="Write a short comment..."
+                  placeholder={
+                    voteLocked
+                      ? 'Like or dislike first, then add a comment...'
+                      : 'Write a short comment...'
+                  }
                   value={feedback.description}
                   onChange={(e) => setDetailDescription(e.target.value)}
                 />
+                <div
+                  className={styles.feedbackStatus}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {feedback.saving ? 'Saving…' : null}
+                  {feedback.error ? `Error: ${feedback.error}` : null}
+                  {!feedback.saving && !feedback.error && feedback.liked !== null
+                    ? 'Saved'
+                    : null}
+                </div>
               </section>
             </div>
           </div>

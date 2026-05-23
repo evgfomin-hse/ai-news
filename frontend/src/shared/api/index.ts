@@ -23,3 +23,4 @@ export {
   type TransportView,
 } from './calls/transports';
 export { getInterest, patchInterest, type InterestView } from './calls/interests';
+export { getScore, putScore, type ScoreView } from './calls/score';

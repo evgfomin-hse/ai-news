@@ -20,8 +20,13 @@ def test_run_bulk_for_all_users_inserts_one_per_user(db: Session, user: User):
     db.add(User(google_id="g2", email="b@example.com"))
     db.commit()
 
+    # No summarizer/fetcher configured -> placeholder fallback for every user.
     stats = SummaryMaintenanceService(db).run_bulk_for_all_users()
-    assert stats == {"users": 2, "rows_inserted": 2}
+    assert stats["users"] == 2
+    assert stats["rows_inserted"] == 2
+    assert stats["llm_fallbacks"] == 2
+    assert stats["llm_generated"] == 0
+    assert stats["news_fetched"] == 0
 
 
 def test_insert_generated_summary_for_user_returns_one(db: Session, user: User):

@@ -11,7 +11,9 @@ class TransportOut(BaseModel):
 class TransportPatch(BaseModel):
     telegramBotToken: str | None = Field(
         default=None,
-        description="Set or replace token; empty string removes token (and chat id). Omit = no change.",
+        description=(
+            "Set or replace token; empty string removes token (and chat id). Omit = no change."
+        ),
     )
     telegramChatId: str | None = Field(
         default=None,

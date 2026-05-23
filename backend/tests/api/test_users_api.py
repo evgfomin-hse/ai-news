@@ -2,9 +2,7 @@ from fastapi.testclient import TestClient
 
 
 def test_patch_profile_updates_fields(authed_client: TestClient):
-    resp = authed_client.patch(
-        "/user", json={"name": "Renamed", "picture": "https://x/p.png"}
-    )
+    resp = authed_client.patch("/user", json={"name": "Renamed", "picture": "https://x/p.png"})
     assert resp.status_code == 200
     body = resp.json()
     assert body["username"] == "Renamed"

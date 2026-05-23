@@ -1,8 +1,11 @@
-import os
 from typing import Literal, Self
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Placeholder JWT secret used as a development default. Refused at startup
+# when cookie_secure=True (i.e. production-shaped config) — see validator below.
+_PLACEHOLDER_JWT_SECRET = "dev-only-change-me"
 
 
 class Settings(BaseSettings):
@@ -18,7 +21,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""
 
     # Used to sign API session JWTs after Google login; use a long random string in production.
-    jwt_secret: str = "dev-only-change-me"
+    jwt_secret: str = _PLACEHOLDER_JWT_SECRET
     jwt_algorithm: str = "HS256"
     session_ttl_seconds: int = 7 * 24 * 3600
 
@@ -26,12 +29,24 @@ class Settings(BaseSettings):
     # real DB user + HttpOnly session JWT (same path as Google login). Leave empty in production.
     e2e_bootstrap_secret: str = ""
 
-    # Nightly job: insert one `summaries` row per user at 00:00 in `summary_schedule_timezone` (IANA, e.g. UTC).
+    # Nightly job: insert one `summaries` row per user at 00:00 in
+    # `summary_schedule_timezone` (IANA, e.g. UTC).
     enable_summary_nightly_scheduler: bool = True
     summary_schedule_timezone: str = "UTC"
 
-    # When set, POST /tasks/summary/run-bulk (header X-Summary-Job-Secret) runs the same job as midnight. Empty = route disabled.
+    # When set, POST /tasks/summary/run-bulk (header X-Summary-Job-Secret) runs
+    # the same job as midnight. Empty = route disabled.
     summary_job_secret: str = ""
+
+    # NewsAPI.org top-headlines fetcher. Empty key disables the news fetch step
+    # (the nightly job continues with whatever rows are already in news_articles).
+    news_api_key: str = ""
+    news_fetch_limit: int = 20
+
+    # OpenRouter chat-completions endpoint. Empty key disables LLM-based summary
+    # generation (the job falls back to inserting placeholder rows).
+    openrouter_api_key: str = ""
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
 
     # Comma-separated browser origins allowed to call the API (e.g. http://localhost:5173).
     cors_origins: str = "http://localhost:5173"
@@ -50,6 +65,18 @@ class Settings(BaseSettings):
     def cookie_none_requires_secure(self) -> Self:
         if self.cookie_samesite == "none" and not self.cookie_secure:
             msg = "cookie_samesite 'none' requires cookie_secure True (browser requirement)"
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def jwt_secret_required_in_production(self) -> Self:
+        # Only fail on production-shaped configs (cookie_secure=True).
+        # Dev keeps working with the default.
+        if self.cookie_secure and self.jwt_secret == _PLACEHOLDER_JWT_SECRET:
+            msg = (
+                "jwt_secret is the publicly-known placeholder; set JWT_SECRET to a long random "
+                "value in production (cookie_secure=True)"
+            )
             raise ValueError(msg)
         return self
 

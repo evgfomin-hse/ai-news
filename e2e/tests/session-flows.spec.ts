@@ -147,4 +147,40 @@ test.describe("authenticated", () => {
             page.getByRole("heading", { name: /good morning/i }),
         ).toBeVisible({ timeout: 15_000 });
     });
+
+    test("CSV export downloads a non-empty file with a dated filename", async ({
+        context,
+        page,
+    }) => {
+        // Make sure the e2e user has at least one row so EXPORT TO CSV is enabled.
+        await generateSummary(context);
+
+        await page.goto("/");
+        await expect(
+            page.getByRole("heading", { name: /good morning/i }),
+        ).toBeVisible({ timeout: 15_000 });
+
+        const button = page.getByRole("button", { name: /export to csv/i });
+        await expect(button).toBeEnabled({ timeout: 15_000 });
+
+        const [download] = await Promise.all([
+            page.waitForEvent("download"),
+            button.click(),
+        ]);
+
+        // Server sets Content-Disposition: attachment; filename="summaries-YYYY-MM-DD.csv"
+        expect(download.suggestedFilename()).toMatch(
+            /^summaries-\d{4}-\d{2}-\d{2}\.csv$/,
+        );
+
+        // Sanity-check the body: header row present, at least one data row.
+        const path = await download.path();
+        const fs = await import("node:fs/promises");
+        const content = await fs.readFile(path, "utf-8");
+        const lines = content.trim().split("\n");
+        expect(lines[0]).toBe(
+            "summary_id,created_at_utc,body,score,score_description",
+        );
+        expect(lines.length).toBeGreaterThanOrEqual(2);
+    });
 });

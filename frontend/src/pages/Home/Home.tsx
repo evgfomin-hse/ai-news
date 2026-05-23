@@ -4,19 +4,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
+  downloadSummariesCsv,
   getScore,
   getUserSummaryPage,
   putScore,
   type SummaryListItem,
   type UserSummaryResponse,
 } from '../../shared/api';
-import { useAuth } from '../../features/Auth/AuthProvider';
+import { useAuth } from '../../features/Auth';
 import styles from './style.module.css';
 
 /** Rows per page on home (matches “6 bullets” layout). */
 const PAGE_SIZE = 6;
 
 const markdownComponents: Components = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   a: ({ node: _node, ...props }) => (
     <a {...props} target="_blank" rel="noreferrer noopener" />
   ),
@@ -141,6 +143,8 @@ const Home: FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<SummaryListItem | null>(null);
   const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<Record<string, SummaryFeedback>>({});
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -176,8 +180,16 @@ const Home: FC = () => {
     };
   }, [detailItem]);
 
-  const exportToCsv = () => {
-    // Placeholder: CSV export will be implemented later.
+  const exportToCsv = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadSummariesCsv();
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const persistScore = useCallback(
@@ -423,12 +435,15 @@ const Home: FC = () => {
                 <button
                   type="button"
                   className={`${styles.swBtn} ${styles.swBtnPrime}`}
-                  disabled={loading}
-                  onClick={exportToCsv}
+                  disabled={loading || exporting || total === 0}
+                  onClick={() => void exportToCsv()}
                 >
-                  EXPORT TO CSV →
+                  {exporting ? 'EXPORTING…' : 'EXPORT TO CSV →'}
                 </button>
               </div>
+              {exportError ? (
+                <p className={styles.error} role="alert">{exportError}</p>
+              ) : null}
             </div>
           </div>
         </>

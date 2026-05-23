@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Summary
+from app.models import Score, Summary
 
 
 class SummaryRepository:
@@ -19,6 +19,20 @@ class SummaryRepository:
             )
             > 0
         )
+
+    def list_all_with_scores_for_user(self, user_id: int) -> list[tuple[Summary, Score | None]]:
+        """Every summary for `user_id`, newest first, left-joined to its score (if any).
+
+        Used by the CSV export path. No pagination — the export endpoint is rare and
+        single-user, and the coursework dataset is small.
+        """
+        rows = self._session.execute(
+            select(Summary, Score)
+            .outerjoin(Score, Score.summary_id == Summary.id)
+            .where(Summary.user_id == user_id)
+            .order_by(Summary.created_at.desc().nulls_last(), Summary.id.desc())
+        ).all()
+        return [(row[0], row[1]) for row in rows]
 
     def count_for_user(self, user_id: int) -> int:
         return int(

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import re
+import time
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -17,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 GDELT_DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_SOURCE_TAG = "gdelt:doc"
+
+# GDELT signals throttling either as HTTP 429 or as a plain-text body (often with HTTP 200),
+# e.g. "Please limit requests to one every 5 seconds or contact ...".
+_RATE_LIMIT_RE = re.compile(r"limit requests|one every \d+ second", re.IGNORECASE)
 
 
 class GdeltFetchError(RuntimeError):
@@ -60,6 +66,10 @@ class GdeltFetcherService:
 
     Pagination: GDELT DOC has no `page` param. We walk the time window by narrowing
     `enddatetime` to the oldest seen timestamp - 1s after each full page.
+
+    Rate limiting: GDELT's free DOC API allows ~1 request / 5s and returns HTTP 429
+    otherwise. We self-throttle to `min_request_interval_seconds` between requests and
+    retry 429s up to `max_retries`, honoring the `Retry-After` header when present.
     """
 
     def __init__(
@@ -68,13 +78,22 @@ class GdeltFetcherService:
         *,
         max_articles: int = 2000,
         max_records_per_request: int = 250,
+        min_request_interval_seconds: float = 5.0,
+        max_retries: int = 3,
         http_get=requests.get,
+        sleep=time.sleep,
+        monotonic=time.monotonic,
     ) -> None:
         self._session = session
         self._articles = NewsRepository(session)
         self._max_articles = max_articles
         self._max_records_per_request = max_records_per_request
+        self._min_request_interval_seconds = min_request_interval_seconds
+        self._max_retries = max_retries
         self._http_get = http_get
+        self._sleep = sleep
+        self._monotonic = monotonic
+        self._last_request_at: float | None = None
 
     def fetch_and_store(
         self,
@@ -136,6 +155,32 @@ class GdeltFetcherService:
         logger.info("GDELT: stored %d articles", inserted)
         return inserted
 
+    def _throttle(self) -> None:
+        """Sleep so consecutive requests are at least `min_request_interval_seconds` apart."""
+        if self._last_request_at is None:
+            return
+        wait = self._min_request_interval_seconds - (self._monotonic() - self._last_request_at)
+        if wait > 0:
+            self._sleep(wait)
+
+    def _is_rate_limited(self, r: Any) -> bool:
+        """True for either form of GDELT throttling: HTTP 429, or a rate-limit text body."""
+        if getattr(r, "status_code", None) == 429:
+            return True
+        text = getattr(r, "text", None)
+        return isinstance(text, str) and bool(_RATE_LIMIT_RE.search(text))
+
+    def _backoff_seconds(self, attempt: int, r: Any) -> float:
+        """Backoff before retry `attempt`: honor `Retry-After`, else exponential from the interval."""
+        headers = getattr(r, "headers", None) or {}
+        raw = headers.get("Retry-After") if hasattr(headers, "get") else None
+        try:
+            return max(float(raw), self._min_request_interval_seconds)
+        except (TypeError, ValueError):
+            pass
+        # Exponential: interval, 2x, 4x, ... so retries can outlast a short cooldown.
+        return self._min_request_interval_seconds * (2 ** (attempt - 1))
+
     def _fetch_one(self, *, query: str, start: datetime, end: datetime) -> list[Any]:
         params = {
             "query": query,
@@ -147,19 +192,38 @@ class GdeltFetcherService:
             "startdatetime": _format_gdelt_dt(start),
             "enddatetime": _format_gdelt_dt(end),
         }
-        try:
-            r = self._http_get(GDELT_DOC_URL, params=params, timeout=30)
-        except requests.RequestException as exc:
-            logger.warning("GDELT request failed: %s", exc)
-            raise GdeltFetchError("Could not reach GDELT") from exc
 
-        if not getattr(r, "ok", True):
-            raise GdeltFetchError(f"GDELT: HTTP {getattr(r, 'status_code', '?')}")
+        attempt = 0
+        while True:
+            self._throttle()
+            self._last_request_at = self._monotonic()
+            try:
+                r = self._http_get(GDELT_DOC_URL, params=params, timeout=30)
+            except requests.RequestException as exc:
+                logger.warning("GDELT request failed: %s", exc)
+                raise GdeltFetchError("Could not reach GDELT") from exc
 
-        try:
-            payload = r.json()
-        except ValueError as exc:
-            raise GdeltFetchError("GDELT returned non-JSON") from exc
+            if self._is_rate_limited(r):
+                if attempt >= self._max_retries:
+                    raise GdeltFetchError("GDELT rate-limited (retries exhausted)")
+                attempt += 1
+                wait = self._backoff_seconds(attempt, r)
+                logger.warning(
+                    "GDELT rate-limited; backing off %.1fs (retry %d/%d)",
+                    wait,
+                    attempt,
+                    self._max_retries,
+                )
+                self._sleep(wait)
+                continue
 
-        articles = payload.get("articles") if isinstance(payload, dict) else None
-        return articles if isinstance(articles, list) else []
+            if not getattr(r, "ok", True):
+                raise GdeltFetchError(f"GDELT: HTTP {getattr(r, 'status_code', '?')}")
+
+            try:
+                payload = r.json()
+            except ValueError as exc:
+                raise GdeltFetchError("GDELT returned non-JSON") from exc
+
+            articles = payload.get("articles") if isinstance(payload, dict) else None
+            return articles if isinstance(articles, list) else []

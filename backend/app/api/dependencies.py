@@ -15,7 +15,7 @@ from app.services.gdelt_service import GdeltFetcherService
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
 from app.services.keyword_extractor import KeywordExtractor
-from app.services.llm_service import LLMSummarizer, OpenRouterSummarizer
+from app.services.llm_service import ChatCompletionsSummarizer, LLMSummarizer
 from app.services.score_service import ScoreService
 from app.services.summary_service import (
     PostgresSummaryService,
@@ -28,12 +28,20 @@ from app.services.user_service import UserService
 
 
 def _build_summarizer() -> LLMSummarizer | None:
-    """Returns a configured OpenRouter summarizer, or None when the API key is unset."""
-    if not settings.openrouter_api_key.strip():
+    """Returns a configured summarizer, or None when no LLM backend is available.
+
+    OpenRouter requires an API key (no key => disabled => placeholder fallback).
+    A local endpoint (e.g. LM Studio) needs no key and is always built when configured.
+    """
+    api_key = settings.openrouter_api_key.strip()
+    if settings.llm_is_openrouter and not api_key:
         return None
-    return OpenRouterSummarizer(
-        api_key=settings.openrouter_api_key,
+    return ChatCompletionsSummarizer(
+        api_key=api_key,
         model=settings.openrouter_model,
+        base_url=settings.llm_base_url,
+        timeout_seconds=settings.llm_timeout_seconds,
+        require_api_key=settings.llm_is_openrouter,
     )
 
 
@@ -43,6 +51,8 @@ def _build_gdelt_fetcher(db: Session) -> GdeltFetcherService:
         db,
         max_articles=settings.gdelt_max_articles,
         max_records_per_request=settings.gdelt_request_max_records,
+        min_request_interval_seconds=settings.gdelt_min_request_interval_seconds,
+        max_retries=settings.gdelt_max_retries,
     )
 
 

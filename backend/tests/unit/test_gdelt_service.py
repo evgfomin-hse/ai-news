@@ -20,6 +20,7 @@ class _Resp:
     status_code: int = 200
     ok: bool = True
     json_error: Exception | None = None
+    text: str | None = None
 
     def json(self):
         if self.json_error is not None:
@@ -37,6 +38,21 @@ class _FakeHttp:
         if not self.responses:
             raise AssertionError("Unexpected extra HTTP call")
         return self.responses.pop(0)
+
+
+class _Clock:
+    """Deterministic monotonic clock + sleep; sleeping advances the clock."""
+
+    def __init__(self) -> None:
+        self.t = 1000.0
+        self.sleeps: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.t += seconds
 
 
 def _article(title: str, url: str, seendate: str) -> dict[str, Any]:
@@ -146,13 +162,149 @@ def test_paginates_by_narrowing_enddatetime_to_oldest_seen_minus_one_second(db: 
         responses=[_Resp(payload={"articles": page1}), _Resp(payload={"articles": page2})]
     )
 
-    svc = GdeltFetcherService(db, max_records_per_request=2, http_get=http)
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db, max_records_per_request=2, http_get=http, sleep=clock.sleep, monotonic=clock.monotonic
+    )
     start, end = _start_end()
     inserted = svc.fetch_and_store(query="(AI)", start=start, end=end)
 
     assert inserted == 3
     assert len(http.calls) == 2
     assert http.calls[1]["params"]["enddatetime"] == "20260605085959"
+
+
+def test_throttles_at_least_min_interval_between_requests(db: Session):
+    page1 = [_article(f"A{i}", f"https://a{i}.example", "20260605T100000Z") for i in range(1, 3)]
+    page1[-1]["seendate"] = "20260605T090000Z"
+    page2 = [_article("B", "https://b.example", "20260605T080000Z")]
+    http = _FakeHttp(
+        responses=[_Resp(payload={"articles": page1}), _Resp(payload={"articles": page2})]
+    )
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        max_records_per_request=2,
+        min_request_interval_seconds=5.0,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    svc.fetch_and_store(query="(AI)", start=start, end=end)
+
+    # First request: no wait. Second request: throttled by the full interval.
+    assert clock.sleeps == [5.0]
+
+
+def test_retries_on_429_then_succeeds(db: Session):
+    http = _FakeHttp(
+        responses=[
+            _Resp(payload="rate limited", ok=False, status_code=429),
+            _Resp(payload={"articles": [_article("A", "https://a.example", "20260605T100000Z")]}),
+        ]
+    )
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        min_request_interval_seconds=5.0,
+        max_retries=3,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    assert svc.fetch_and_store(query="(AI)", start=start, end=end) == 1
+    assert len(http.calls) == 2  # one retry
+    assert clock.sleeps  # backed off before retrying
+
+
+def test_raises_after_exhausting_429_retries(db: Session):
+    http = _FakeHttp(responses=[_Resp(payload="x", ok=False, status_code=429) for _ in range(4)])
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        min_request_interval_seconds=5.0,
+        max_retries=3,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    with pytest.raises(GdeltFetchError, match="rate-limited"):
+        svc.fetch_and_store(query="(AI)", start=start, end=end)
+    assert len(http.calls) == 4  # initial + 3 retries
+
+
+def test_retries_on_plaintext_rate_limit_returned_with_200(db: Session):
+    # GDELT often returns its throttle notice as plain text with HTTP 200 (not 429).
+    rate_limited = _Resp(
+        payload=None,
+        status_code=200,
+        ok=True,
+        json_error=ValueError("not json"),
+        text="Please limit requests to one every 5 seconds or contact ...",
+    )
+    http = _FakeHttp(
+        responses=[
+            rate_limited,
+            _Resp(payload={"articles": [_article("A", "https://a.example", "20260605T100000Z")]}),
+        ]
+    )
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        min_request_interval_seconds=5.0,
+        max_retries=3,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    assert svc.fetch_and_store(query="(AI)", start=start, end=end) == 1
+    assert len(http.calls) == 2  # treated the 200+plaintext as rate-limited and retried
+    assert clock.sleeps  # backed off
+
+
+def test_backoff_is_exponential_across_retries(db: Session):
+    http = _FakeHttp(responses=[_Resp(payload="x", ok=False, status_code=429) for _ in range(4)])
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        min_request_interval_seconds=5.0,
+        max_retries=3,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    with pytest.raises(GdeltFetchError, match="rate-limited"):
+        svc.fetch_and_store(query="(AI)", start=start, end=end)
+    # 5, 10, 20 — doubles each retry so it can outlast a short cooldown.
+    assert clock.sleeps == [5.0, 10.0, 20.0]
+
+
+def test_honors_retry_after_header_on_429(db: Session):
+    resp_429 = _Resp(payload="x", ok=False, status_code=429)
+    resp_429.headers = {"Retry-After": "12"}
+    http = _FakeHttp(
+        responses=[
+            resp_429,
+            _Resp(payload={"articles": [_article("A", "https://a.example", "20260605T100000Z")]}),
+        ]
+    )
+    clock = _Clock()
+    svc = GdeltFetcherService(
+        db,
+        min_request_interval_seconds=5.0,
+        max_retries=3,
+        http_get=http,
+        sleep=clock.sleep,
+        monotonic=clock.monotonic,
+    )
+    start, end = _start_end()
+    svc.fetch_and_store(query="(AI)", start=start, end=end)
+    assert 12.0 in clock.sleeps  # waited the server-requested delay
 
 
 def test_stops_when_max_articles_reached(db: Session):

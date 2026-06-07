@@ -8,7 +8,10 @@ from typing import Any
 import pytest
 import requests
 
-from app.services.llm_service import LLMError, OpenRouterSummarizer
+from app.services.llm_service import ChatCompletionsSummarizer, LLMError
+
+# The summarizer is backend-agnostic; the historical name still works via alias.
+OpenRouterSummarizer = ChatCompletionsSummarizer
 
 
 @dataclass
@@ -42,7 +45,7 @@ def _fake_post(response: _Resp):
 def test_generate_raises_when_api_key_missing():
     post, _ = _fake_post(_Resp({}))
     svc = OpenRouterSummarizer(api_key="", http_post=post)
-    with pytest.raises(LLMError, match="OPENROUTER_API_KEY"):
+    with pytest.raises(LLMError, match="API key is not configured"):
         svc.generate(prompt="hello")
 
 
@@ -51,7 +54,7 @@ def test_generate_raises_on_network_error():
         raise requests.RequestException("boom")
 
     svc = OpenRouterSummarizer(api_key="k", http_post=_raise)
-    with pytest.raises(LLMError, match="Could not reach OpenRouter"):
+    with pytest.raises(LLMError, match="Could not reach LLM endpoint"):
         svc.generate(prompt="hello")
 
 
@@ -93,3 +96,27 @@ def test_generate_returns_trimmed_content_and_sends_authorization():
     assert captured["headers"]["Authorization"] == "Bearer my-key"
     assert captured["json"]["model"] == "some/model:free"
     assert captured["json"]["messages"] == [{"role": "user", "content": "please summarize"}]
+
+
+def test_generate_posts_to_configured_base_url():
+    post, captured = _fake_post(_Resp({"choices": [{"message": {"content": "hi"}}]}))
+    svc = OpenRouterSummarizer(
+        api_key="k",
+        base_url="http://127.0.0.1:1234/v1/chat/completions",
+        http_post=post,
+    )
+    svc.generate(prompt="hello")
+    assert captured["url"] == "http://127.0.0.1:1234/v1/chat/completions"
+
+
+def test_generate_allows_empty_key_when_not_required():
+    """LM Studio needs no auth: an empty key must not short-circuit the call."""
+    post, captured = _fake_post(_Resp({"choices": [{"message": {"content": "hi"}}]}))
+    svc = OpenRouterSummarizer(
+        api_key="",
+        base_url="http://127.0.0.1:1234/v1/chat/completions",
+        require_api_key=False,
+        http_post=post,
+    )
+    assert svc.generate(prompt="hello") == "hi"
+    assert captured["headers"]["Authorization"] == "Bearer "

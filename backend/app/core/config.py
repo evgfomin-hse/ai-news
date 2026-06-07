@@ -42,15 +42,32 @@ class Settings(BaseSettings):
     summary_schedule_hour: int = Field(default=3, ge=0, le=23)
     gdelt_max_articles: int = 2000
     gdelt_request_max_records: int = 250
+    # GDELT's free DOC API allows ~1 request / 5s (429 otherwise). We self-throttle
+    # to this spacing and retry 429s this many times, honoring Retry-After.
+    gdelt_min_request_interval_seconds: float = Field(default=6.0, ge=0)
+    gdelt_max_retries: int = Field(default=3, ge=0)
     per_user_filter_batch: int = 500
     per_user_filter_top_per_batch: int = 25
     per_user_digest_limit: int = 50
     keyword_extractor_max_query_chars: int = 450
 
-    # OpenRouter chat-completions endpoint. Empty key disables LLM-based summary
-    # generation (the job falls back to inserting placeholder rows).
+    # OpenAI-compatible chat-completions endpoint. Defaults to OpenRouter; point at a
+    # local LM Studio server (e.g. http://127.0.0.1:1234/v1/chat/completions) to run
+    # models locally with no API key and no rate limits.
+    llm_base_url: str = "https://openrouter.ai/api/v1/chat/completions"
+    # Request timeout (seconds). Local models on modest hardware can be slow — bump for LM Studio.
+    llm_timeout_seconds: int = Field(default=60, ge=1)
+
+    # API key for the LLM endpoint. Required for OpenRouter; ignored by LM Studio.
+    # When targeting OpenRouter, an empty key disables LLM-based summary generation
+    # (the job falls back to inserting placeholder rows).
     openrouter_api_key: str = ""
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+
+    @property
+    def llm_is_openrouter(self) -> bool:
+        """True when the configured endpoint is OpenRouter (which requires an API key)."""
+        return "openrouter.ai" in self.llm_base_url.lower()
 
     # Comma-separated browser origins allowed to call the API (e.g. http://localhost:5173).
     cors_origins: str = "http://localhost:5173"

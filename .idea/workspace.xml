@@ -5,11 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="20552074-cac4-4e53-b3e5-90eb896110c8" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/docs/superpowers/specs/2026-05-23-project-audit-design.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/backend/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/api/dependencies.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/api/dependencies.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/repositories/news_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/repositories/news_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/scheduler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/services/news_service.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/services/summary_prompt.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/services/summary_prompt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/services/summary_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/services/summary_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_tasks_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/api/test_tasks_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_pipeline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/unit/test_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/unit/test_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/unit/test_news_service.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/unit/test_summary_prompt.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/unit/test_summary_prompt.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,5 +95,9 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix" />
   </component>
 </project>

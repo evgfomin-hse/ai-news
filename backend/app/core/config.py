@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Placeholder JWT secret used as a development default. Refused at startup
@@ -38,10 +38,14 @@ class Settings(BaseSettings):
     # the same job as midnight. Empty = route disabled.
     summary_job_secret: str = ""
 
-    # NewsAPI.org top-headlines fetcher. Empty key disables the news fetch step
-    # (the nightly job continues with whatever rows are already in news_articles).
-    news_api_key: str = ""
-    news_fetch_limit: int = 20
+    # GDELT-based daily news pipeline (replaces NewsAPI top-headlines for the bulk job).
+    summary_schedule_hour: int = Field(default=3, ge=0, le=23)
+    gdelt_max_articles: int = 2000
+    gdelt_request_max_records: int = 250
+    per_user_filter_batch: int = 500
+    per_user_filter_top_per_batch: int = 25
+    per_user_digest_limit: int = 50
+    keyword_extractor_max_query_chars: int = 450
 
     # OpenRouter chat-completions endpoint. Empty key disables LLM-based summary
     # generation (the job falls back to inserting placeholder rows).

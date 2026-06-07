@@ -8,7 +8,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.api.dependencies import (
-    _build_news_fetcher,
+    _build_candidate_filter,
+    _build_gdelt_fetcher,
+    _build_keyword_extractor,
     _build_summarizer,
     _build_telegram_sender,
 )
@@ -29,7 +31,9 @@ def _nightly_summary_job() -> None:
         maintenance = SummaryMaintenanceService(
             db,
             summarizer=_build_summarizer(),
-            fetcher=_build_news_fetcher(db),
+            gdelt_fetcher=_build_gdelt_fetcher(db),
+            keyword_extractor=_build_keyword_extractor(),
+            candidate_filter=_build_candidate_filter(),
             telegram_sender=_build_telegram_sender(),
         )
         stats = maintenance.run_bulk_for_all_users()
@@ -50,15 +54,17 @@ def setup_scheduler() -> None:
         return
     sched = AsyncIOScheduler()
     tz = settings.summary_schedule_timezone.strip() or "UTC"
+    hour = settings.summary_schedule_hour
     sched.add_job(
         _nightly_summary_job,
-        CronTrigger(hour=0, minute=0, second=0, timezone=tz),
+        CronTrigger(hour=hour, minute=0, second=0, timezone=tz),
         id=SUMMARY_JOB_ID,
         replace_existing=True,
     )
     sched.start()
     logger.info(
-        "Nightly summary scheduler started (cron 00:00, timezone=%s)",
+        "Nightly summary scheduler started (cron %02d:00, timezone=%s)",
+        hour,
         tz,
     )
     _scheduler = sched

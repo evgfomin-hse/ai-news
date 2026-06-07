@@ -38,3 +38,20 @@ class NewsRepository:
             )
             or 0
         )
+
+    def list_in_window(self, *, start: datetime, end: datetime, limit: int) -> list[NewsArticle]:
+        """Articles in [start, end] by published_at, falling back to fetched_at when NULL.
+
+        Ordered fetched_at desc, id desc so the caller sees most-recent rows first.
+        """
+        from sqlalchemy import and_, func
+
+        effective = func.coalesce(NewsArticle.published_at, NewsArticle.fetched_at)
+        return list(
+            self._session.scalars(
+                select(NewsArticle)
+                .where(and_(effective >= start, effective <= end))
+                .order_by(NewsArticle.fetched_at.desc(), NewsArticle.id.desc())
+                .limit(limit)
+            ).all()
+        )

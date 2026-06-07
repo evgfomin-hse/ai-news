@@ -62,16 +62,16 @@ Rules:
 
 def build_summary_prompt(
     *,
-    today_label: str,
+    date_label: str,
     interests_text: str | None,
     recent_scores: list[ScoreSignal],
     news: list[NewsItem],
 ) -> str:
     """Build the full user-message prompt for a single user's daily summary.
 
-    `today_label` is the date string to embed in the H2 header (e.g. "2026-05-23").
+    `date_label` is the date string to embed in the H2 header (e.g. "2026-05-23").
     """
-    sections: list[str] = [_SYSTEM_RULES, f"Today's date: {today_label}"]
+    sections: list[str] = [_SYSTEM_RULES, f"Today's date: {date_label}"]
 
     interests = (interests_text or "").strip()
     if interests:
@@ -93,8 +93,6 @@ def build_summary_prompt(
         lines = []
         for n in news:
             head = f"- {n.title}"
-            if n.description:
-                head += f" — {n.description}"
             if n.url:
                 head += f" [{n.url}]"
             lines.append(head)

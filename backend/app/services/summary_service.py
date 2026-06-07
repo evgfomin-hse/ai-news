@@ -7,6 +7,7 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.time import naive_utc_now
 from app.repositories.interest_repository import InterestRepository
 from app.repositories.news_repository import NewsRepository
@@ -14,8 +15,10 @@ from app.repositories.score_repository import ScoreRepository
 from app.repositories.summary_repository import SummaryRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.summary import SummaryItem, UserSummaryResponse
+from app.services.candidate_filter import PerUserCandidateFilter
+from app.services.gdelt_service import GdeltFetchError, GdeltFetcherService
+from app.services.keyword_extractor import KeywordExtractor
 from app.services.llm_service import LLMError, LLMSummarizer
-from app.services.news_service import NewsFetchError, NewsFetcherService
 from app.services.summary_prompt import (
     build_summary_prompt,
     news_items_from_rows,
@@ -60,6 +63,39 @@ def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt.astimezone(UTC)
+
+
+def _previous_day_window(now: datetime) -> tuple[datetime, datetime, str]:
+    """Return (yesterday_start, yesterday_end, date_label) for a given run time.
+
+    `now` is expected to be timezone-aware UTC; we use the UTC-day calendar.
+    """
+    today_midnight = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    start = today_midnight - timedelta(days=1)
+    end = start + timedelta(hours=23, minutes=59, seconds=59)
+    return start, end, start.strftime("%Y-%m-%d")
+
+
+def _users_with_interests(users, interests) -> list[tuple[int, str]]:
+    """Returns (user_id, interests_text) for users whose latest interests row is non-empty.
+
+    Users with no interests row, or an empty/whitespace `interests` field, are excluded.
+    Order mirrors `users.list_all_ids()`.
+
+    Reads `row.interests` (the real model field) with fallback to `row.text` so the
+    fake repos in tests can use a simpler field name.
+    """
+    out: list[tuple[int, str]] = []
+    for uid in users.list_all_ids():
+        row = interests.get_latest_for_user(uid)
+        if row is None:
+            continue
+        text = (row.interests if hasattr(row, "interests") else getattr(row, "text", None)) or ""
+        text = text.strip()
+        if not text:
+            continue
+        out.append((uid, text))
+    return out
 
 
 class PostgresSummaryService(SummaryService):
@@ -236,7 +272,7 @@ def _generate_one_for_user(
     )
 
     prompt = build_summary_prompt(
-        today_label=today_label,
+        date_label=today_label,
         interests_text=interest_text,
         recent_scores=score_signals_from_rows(recent_scores),
         news=news_items_from_rows(news_rows),
@@ -291,14 +327,19 @@ def _deliver_to_telegram(
 class SummaryMaintenanceService:
     """Write-side summary operations.
 
-    Real pipeline:
-      1. (bulk only) fetch today's news via `fetcher` if one is configured.
-      2. for each user, build a prompt from interests + recent scores + today's news,
-         call `summarizer`, and insert one `summaries` row.
-      3. send the resulting summary to the user's Telegram chat via `telegram_sender`
-         if both are configured. Delivery failures are logged + counted, never fatal.
-      4. on any LLM error, fall back to inserting the placeholder row for that user
-         (and still attempt Telegram delivery of the placeholder).
+    Bulk path (nightly, previous-day digest):
+      1. extract a global keyword query from all users' interests (one LLM call via `keyword_extractor`).
+      2. fetch yesterday's news from GDELT using that query (`gdelt_fetcher`), persisting to `news_articles`.
+      3. for each user with non-empty interests, narrow the day's pool via chunked LLM calls
+         (`candidate_filter`), then generate a digest via `summarizer` and insert one `summaries` row.
+      4. deliver the digest to the user's Telegram chat via `telegram_sender` when configured.
+
+      Users without interests are skipped. Users whose digest LLM call fails are also skipped:
+      no `summaries` row, no Telegram delivery. Delivery failures are logged + counted, never fatal.
+
+    User-triggered path (`append_placeholder_for_user`):
+      LLM-generates a fresh digest "now" from the rolling 36h news window, or inserts a placeholder
+      when no summarizer is configured. Same Telegram delivery semantics.
     """
 
     def __init__(
@@ -306,12 +347,16 @@ class SummaryMaintenanceService:
         session: Session,
         *,
         summarizer: LLMSummarizer | None = None,
-        fetcher: NewsFetcherService | None = None,
+        gdelt_fetcher: GdeltFetcherService | None = None,
+        keyword_extractor: KeywordExtractor | None = None,
+        candidate_filter: PerUserCandidateFilter | None = None,
         telegram_sender: TelegramSender | None = None,
     ) -> None:
         self._session = session
         self._summarizer = summarizer
-        self._fetcher = fetcher
+        self._gdelt_fetcher = gdelt_fetcher
+        self._keyword_extractor = keyword_extractor
+        self._candidate_filter = candidate_filter
         self._telegram_sender = telegram_sender
 
     def _components(
@@ -367,67 +412,99 @@ class SummaryMaintenanceService:
         return 1
 
     def run_bulk_for_all_users(self) -> dict[str, int]:
-        """Nightly job entry point. Fetch news, generate one summary per user, deliver."""
-        users = UserRepository(self._session)
-        interests, scores, news, summaries, transports = self._components()
+        """Nightly job entry point: GDELT-based, demand-driven, previous-day digest per user."""
+        now = datetime.now(UTC)
+        y_start, y_end, date_label = _previous_day_window(now)
 
-        news_inserted = 0
-        if self._fetcher is not None:
-            try:
-                news_inserted = self._fetcher.fetch_and_store()
-            except NewsFetchError as exc:
-                logger.warning("News fetch failed; continuing with stale articles: %s", exc)
+        users_repo = UserRepository(self._session)
+        interests_repo = InterestRepository(self._session)
+        scores_repo = ScoreRepository(self._session)
+        news_repo = NewsRepository(self._session)
+        summaries_repo = SummaryRepository(self._session)
+        transports = TransportService(self._session)
 
-        user_ids = users.list_all_ids()
-        today_label = datetime.now(UTC).strftime("%Y-%m-%d")
-        generated = 0
-        fallbacks = 0
-        delivery_counts: dict[TelegramOutcome, int] = {
-            "sent": 0,
-            "skipped_no_config": 0,
-            "failed": 0,
-            "no_sender": 0,
+        all_user_ids = users_repo.list_all_ids()
+        users_with_interests = _users_with_interests(users_repo, interests_repo)
+        skipped_no_interests = len(all_user_ids) - len(users_with_interests)
+
+        stats: dict[str, int] = {
+            "users_total": len(all_user_ids),
+            "users_processed": 0,
+            "skipped_no_interests": skipped_no_interests,
+            "digest_failed": 0,
+            "gdelt_articles_fetched": 0,
+            "keyword_extraction_failed": 0,
+            "telegram_sent": 0,
+            "telegram_skipped_no_config": 0,
+            "telegram_failed": 0,
+            "telegram_no_sender": 0,
         }
-        for uid in user_ids:
-            if self._summarizer is None:
-                body = _placeholder_body()
-                summaries.append_row(user_id=uid, summary=body, created_at=naive_utc_now())
-                fallbacks += 1
-            else:
-                body = _generate_one_for_user(
-                    user_id=uid,
-                    today_label=today_label,
-                    interests=interests,
-                    scores=scores,
-                    news=news,
-                    summaries=summaries,
-                    summarizer=self._summarizer,
+
+        if not users_with_interests:
+            self._session.commit()
+            return stats
+
+        query: str | None = None
+        if self._keyword_extractor is not None:
+            query = self._keyword_extractor.extract(users_with_interests)
+            if query is None:
+                stats["keyword_extraction_failed"] = 1
+
+        if query is not None and self._gdelt_fetcher is not None:
+            try:
+                stats["gdelt_articles_fetched"] = self._gdelt_fetcher.fetch_and_store(
+                    query=query,
+                    start=y_start.replace(tzinfo=None),
+                    end=y_end.replace(tzinfo=None),
                 )
-                if body is None:
-                    body = _placeholder_body()
-                    summaries.append_row(user_id=uid, summary=body, created_at=naive_utc_now())
-                    fallbacks += 1
-                else:
-                    generated += 1
+            except GdeltFetchError as exc:
+                logger.warning("GDELT fetch failed; continuing with stored articles: %s", exc)
+
+        pool = news_repo.list_in_window(
+            start=y_start.replace(tzinfo=None),
+            end=y_end.replace(tzinfo=None),
+            limit=settings.gdelt_max_articles,
+        )
+
+        for user_id, interests_text in users_with_interests:
+            if self._candidate_filter is not None and pool:
+                filtered = self._candidate_filter.pick_top(
+                    interests_text=interests_text,
+                    articles=pool,
+                    top_n=settings.per_user_digest_limit,
+                )
+            else:
+                filtered = pool[: settings.per_user_digest_limit]
+
+            recent_scores = scores_repo.list_recent_for_user(user_id, limit=RECENT_SCORES_LIMIT)
+            prompt = build_summary_prompt(
+                date_label=date_label,
+                interests_text=interests_text,
+                recent_scores=score_signals_from_rows(recent_scores),
+                news=news_items_from_rows(filtered),
+            )
+            if self._summarizer is None:
+                stats["digest_failed"] += 1
+                continue
+            try:
+                body = self._summarizer.generate(prompt=prompt)
+            except LLMError as exc:
+                logger.warning("Digest LLM failed for user_id=%s: %s", user_id, exc)
+                stats["digest_failed"] += 1
+                continue
+
+            summaries_repo.append_row(user_id=user_id, summary=body, created_at=naive_utc_now())
             outcome = _deliver_to_telegram(
-                user_id=uid,
+                user_id=user_id,
                 body=body,
                 transports=transports,
                 sender=self._telegram_sender,
             )
-            delivery_counts[outcome] += 1
+            stats[f"telegram_{outcome}"] += 1
+            stats["users_processed"] += 1
+
         self._session.commit()
-        return {
-            "users": len(user_ids),
-            "rows_inserted": len(user_ids),
-            "news_fetched": news_inserted,
-            "llm_generated": generated,
-            "llm_fallbacks": fallbacks,
-            "telegram_sent": delivery_counts["sent"],
-            "telegram_skipped_no_config": delivery_counts["skipped_no_config"],
-            "telegram_failed": delivery_counts["failed"],
-            "telegram_no_sender": delivery_counts["no_sender"],
-        }
+        return stats
 
 
 __all__ = [

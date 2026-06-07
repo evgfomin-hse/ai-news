@@ -10,10 +10,12 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.models import User
 from app.repositories.summary_repository import SummaryRepository
+from app.services.candidate_filter import PerUserCandidateFilter
+from app.services.gdelt_service import GdeltFetcherService
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
+from app.services.keyword_extractor import KeywordExtractor
 from app.services.llm_service import LLMSummarizer, OpenRouterSummarizer
-from app.services.news_service import NewsFetcherService
 from app.services.score_service import ScoreService
 from app.services.summary_service import (
     PostgresSummaryService,
@@ -35,14 +37,35 @@ def _build_summarizer() -> LLMSummarizer | None:
     )
 
 
-def _build_news_fetcher(db: Session) -> NewsFetcherService | None:
-    """Returns a configured NewsAPI fetcher, or None when the API key is unset."""
-    if not settings.news_api_key.strip():
-        return None
-    return NewsFetcherService(
+def _build_gdelt_fetcher(db: Session) -> GdeltFetcherService:
+    """Returns a GDELT fetcher. No API key needed; GDELT is always enabled."""
+    return GdeltFetcherService(
         db,
-        api_key=settings.news_api_key,
-        page_size=settings.news_fetch_limit,
+        max_articles=settings.gdelt_max_articles,
+        max_records_per_request=settings.gdelt_request_max_records,
+    )
+
+
+def _build_keyword_extractor() -> KeywordExtractor | None:
+    """Returns a keyword extractor wrapping the configured summarizer, or None when unconfigured."""
+    summarizer = _build_summarizer()
+    if summarizer is None:
+        return None
+    return KeywordExtractor(
+        summarizer,
+        max_query_chars=settings.keyword_extractor_max_query_chars,
+    )
+
+
+def _build_candidate_filter() -> PerUserCandidateFilter | None:
+    """Returns a per-user filter wrapping the configured summarizer, or None when unconfigured."""
+    summarizer = _build_summarizer()
+    if summarizer is None:
+        return None
+    return PerUserCandidateFilter(
+        summarizer,
+        batch_size=settings.per_user_filter_batch,
+        top_per_batch=settings.per_user_filter_top_per_batch,
     )
 
 
@@ -84,7 +107,9 @@ def get_summary_maintenance_service(
     return SummaryMaintenanceService(
         db,
         summarizer=_build_summarizer(),
-        fetcher=_build_news_fetcher(db),
+        gdelt_fetcher=_build_gdelt_fetcher(db),
+        keyword_extractor=_build_keyword_extractor(),
+        candidate_filter=_build_candidate_filter(),
         telegram_sender=_build_telegram_sender(),
     )
 

@@ -20,5 +20,10 @@ def test_runs_with_correct_secret(client: TestClient, monkeypatch, db, user):
     resp = client.post("/tasks/summary/run-bulk", headers={"x-summary-job-secret": "right"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["users"] == 1
-    assert body["rows_inserted"] == 1
+    # New stats shape — users without interests get skipped, so this user is counted in
+    # skipped_no_interests (no interests row in the fixture).
+    assert body["users_total"] == 1
+    assert body["users_processed"] == 0
+    assert body["skipped_no_interests"] == 1
+    assert "gdelt_articles_fetched" in body
+    assert "telegram_sent" in body

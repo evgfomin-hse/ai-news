@@ -44,11 +44,20 @@ port 5173 before the suite runs, and reuses already-running instances locally.
 - `tests/guest.spec.ts` — unauthenticated landing and protected-route guard
 - `tests/session-flows.spec.ts` — home, interests roundtrip, score persistence
   (vote → cache → reload → server fetch), logout, unknown-route fallback
+- `tests/settings-transport.spec.ts` — Telegram transport panel: token save,
+  chat-id validation, persistence, disabled states (serial; shares one
+  transport row). Excludes the live-Telegram "Test bot"/send paths.
+- `tests/feedback.spec.ts` — dislike vote + comment: lock-before-vote,
+  debounced save, backend cross-check, survives reload
+- `tests/pagination.spec.ts` — feed PREV/NEXT pager and disabled states
+  (seeds ≥7 rows via `ensureSummaryCount`)
 - `tests/helpers/bootstrap.ts` — `POST /auth/e2e/bootstrap-session` to mint a
   real session cookie; skips tests cleanly when `E2E_BOOTSTRAP_SECRET` is unset
-- `tests/helpers/data.ts` — `generateSummary` / `fetchScore` for seeding via API
-  so tests don't depend on an LLM being configured (the placeholder summary path
-  is deterministic and free)
+- `tests/helpers/data.ts` — `generateSummary` / `fetchScore` / `ensureSummaryCount`
+  for seeding via API so tests don't depend on an LLM being configured (the
+  placeholder summary path is deterministic and free)
+- `tests/helpers/transport.ts` — `clearTransport` resets the transport row to an
+  empty baseline (used by the serial transport spec)
 
 ## Notes
 

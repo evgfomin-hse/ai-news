@@ -25,5 +25,5 @@ def test_runs_with_correct_secret(client: TestClient, monkeypatch, db, user):
     assert body["users_total"] == 1
     assert body["users_processed"] == 0
     assert body["skipped_no_interests"] == 1
-    assert "gdelt_articles_fetched" in body
+    assert "news_articles_fetched" in body
     assert "telegram_sent" in body

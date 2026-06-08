@@ -1,4 +1,4 @@
-"""Extracts a GDELT-ready keyword query from the union of all users' interests."""
+"""Extracts a NewsAPI-ready keyword query from the union of all users' interests."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ Rules:
 
 
 class KeywordExtractor:
-    """One LLM call → GDELT query string '(kw1 OR kw2 OR ...)'."""
+    """One LLM call → NewsAPI query string '(kw1 OR kw2 OR ...)'."""
 
     def __init__(
         self,

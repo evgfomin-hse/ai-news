@@ -48,8 +48,11 @@ Rules:
   placeholder you receive).
 - Then 4-8 bullets, each one sentence, picking the most relevant items from
   "Today's news" for THIS user.
-- If a bullet covers an article, end the bullet with a parenthesized markdown link
-  to the URL when one is provided.
+- EVERY bullet MUST end with a parenthesized markdown link to its source article's
+  URL, e.g. `([source](https://example.com/article))`. This is mandatory — never
+  emit a bullet without a source link.
+- Only write bullets for items that have a URL in "Today's news". Skip any item
+  that has no URL rather than inventing or omitting a source.
 - Bias toward the user's interests; deprioritize topics the user has previously
   disliked.
 - If "Recent feedback" tells you the user liked or disliked similar items, mention

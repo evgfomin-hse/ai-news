@@ -38,18 +38,19 @@ class Settings(BaseSettings):
     # the same job as midnight. Empty = route disabled.
     summary_job_secret: str = ""
 
-    # GDELT-based daily news pipeline (replaces NewsAPI top-headlines for the bulk job).
+    # NewsAPI.org /everything daily news pipeline.
     summary_schedule_hour: int = Field(default=3, ge=0, le=23)
-    gdelt_max_articles: int = 2000
-    gdelt_request_max_records: int = 250
-    # GDELT's free DOC API allows ~1 request / 5s (429 otherwise). We self-throttle
-    # to this spacing and retry 429s this many times, honoring Retry-After.
-    gdelt_min_request_interval_seconds: float = Field(default=6.0, ge=0)
-    gdelt_max_retries: int = Field(default=3, ge=0)
     per_user_filter_batch: int = 500
     per_user_filter_top_per_batch: int = 25
     per_user_digest_limit: int = 50
     keyword_extractor_max_query_chars: int = 450
+
+    # NewsAPI key (newsapi.org). Empty disables fetching; the run falls back to stored
+    # articles. The free Developer plan caps results at 100 and delays articles ~24h.
+    news_api_key: str = ""
+    news_api_language: str = "en"
+    news_request_page_size: int = Field(default=100, ge=1, le=100)
+    news_max_articles: int = 100
 
     # OpenAI-compatible chat-completions endpoint. Defaults to OpenRouter; point at a
     # local LM Studio server (e.g. http://127.0.0.1:1234/v1/chat/completions) to run

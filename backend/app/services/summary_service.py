@@ -16,7 +16,7 @@ from app.repositories.summary_repository import SummaryRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.summary import SummaryItem, UserSummaryResponse
 from app.services.candidate_filter import PerUserCandidateFilter
-from app.services.gdelt_service import GdeltFetchError, GdeltFetcherService
+from app.services.news_service import NewsApiFetcherService, NewsFetchError
 from app.services.keyword_extractor import KeywordExtractor
 from app.services.llm_service import LLMError, LLMSummarizer
 from app.services.summary_prompt import (
@@ -329,7 +329,7 @@ class SummaryMaintenanceService:
 
     Bulk path (nightly, previous-day digest):
       1. extract a global keyword query from all users' interests (one LLM call via `keyword_extractor`).
-      2. fetch yesterday's news from GDELT using that query (`gdelt_fetcher`), persisting to `news_articles`.
+      2. fetch yesterday's news from NewsAPI using that query (`news_fetcher`), persisting to `news_articles`.
       3. for each user with non-empty interests, narrow the day's pool via chunked LLM calls
          (`candidate_filter`), then generate a digest via `summarizer` and insert one `summaries` row.
       4. deliver the digest to the user's Telegram chat via `telegram_sender` when configured.
@@ -347,14 +347,14 @@ class SummaryMaintenanceService:
         session: Session,
         *,
         summarizer: LLMSummarizer | None = None,
-        gdelt_fetcher: GdeltFetcherService | None = None,
+        news_fetcher: NewsApiFetcherService | None = None,
         keyword_extractor: KeywordExtractor | None = None,
         candidate_filter: PerUserCandidateFilter | None = None,
         telegram_sender: TelegramSender | None = None,
     ) -> None:
         self._session = session
         self._summarizer = summarizer
-        self._gdelt_fetcher = gdelt_fetcher
+        self._news_fetcher = news_fetcher
         self._keyword_extractor = keyword_extractor
         self._candidate_filter = candidate_filter
         self._telegram_sender = telegram_sender
@@ -412,7 +412,7 @@ class SummaryMaintenanceService:
         return 1
 
     def run_bulk_for_all_users(self) -> dict[str, int]:
-        """Nightly job entry point: GDELT-based, demand-driven, previous-day digest per user."""
+        """Nightly job entry point: NewsAPI-based, demand-driven, previous-day digest per user."""
         now = datetime.now(UTC)
         y_start, y_end, date_label = _previous_day_window(now)
 
@@ -432,7 +432,7 @@ class SummaryMaintenanceService:
             "users_processed": 0,
             "skipped_no_interests": skipped_no_interests,
             "digest_failed": 0,
-            "gdelt_articles_fetched": 0,
+            "news_articles_fetched": 0,
             "keyword_extraction_failed": 0,
             "telegram_sent": 0,
             "telegram_skipped_no_config": 0,
@@ -450,20 +450,20 @@ class SummaryMaintenanceService:
             if query is None:
                 stats["keyword_extraction_failed"] = 1
 
-        if query is not None and self._gdelt_fetcher is not None:
+        if query is not None and self._news_fetcher is not None:
             try:
-                stats["gdelt_articles_fetched"] = self._gdelt_fetcher.fetch_and_store(
+                stats["news_articles_fetched"] = self._news_fetcher.fetch_and_store(
                     query=query,
                     start=y_start.replace(tzinfo=None),
                     end=y_end.replace(tzinfo=None),
                 )
-            except GdeltFetchError as exc:
-                logger.warning("GDELT fetch failed; continuing with stored articles: %s", exc)
+            except NewsFetchError as exc:
+                logger.warning("NewsAPI fetch failed; continuing with stored articles: %s", exc)
 
         pool = news_repo.list_in_window(
             start=y_start.replace(tzinfo=None),
             end=y_end.replace(tzinfo=None),
-            limit=settings.gdelt_max_articles,
+            limit=settings.news_max_articles,
         )
 
         for user_id, interests_text in users_with_interests:

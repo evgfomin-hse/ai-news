@@ -9,8 +9,8 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.api.dependencies import (
     _build_candidate_filter,
-    _build_gdelt_fetcher,
     _build_keyword_extractor,
+    _build_news_fetcher,
     _build_summarizer,
     _build_telegram_sender,
 )
@@ -31,7 +31,7 @@ def _nightly_summary_job() -> None:
         maintenance = SummaryMaintenanceService(
             db,
             summarizer=_build_summarizer(),
-            gdelt_fetcher=_build_gdelt_fetcher(db),
+            news_fetcher=_build_news_fetcher(db),
             keyword_extractor=_build_keyword_extractor(),
             candidate_filter=_build_candidate_filter(),
             telegram_sender=_build_telegram_sender(),

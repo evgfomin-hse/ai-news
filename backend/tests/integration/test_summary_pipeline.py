@@ -89,7 +89,7 @@ def test_bulk_sends_summary_to_telegram_when_user_has_config(db: Session, user: 
     maint = SummaryMaintenanceService(
         db,
         summarizer=summarizer,
-        gdelt_fetcher=None,
+        news_fetcher=None,
         keyword_extractor=None,
         candidate_filter=None,
         telegram_sender=sender,
@@ -111,7 +111,7 @@ def test_bulk_skips_telegram_when_user_has_no_token_or_chat(db: Session, user: U
     maint = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=None,
+        news_fetcher=None,
         keyword_extractor=None,
         candidate_filter=None,
         telegram_sender=sender,
@@ -136,7 +136,7 @@ def test_bulk_counts_telegram_failure_but_keeps_summary(db: Session, user: User,
     maint = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=None,
+        news_fetcher=None,
         keyword_extractor=None,
         candidate_filter=None,
         telegram_sender=sender,
@@ -156,7 +156,7 @@ def test_bulk_without_sender_counts_no_sender(db: Session, user: User):
     maint = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=None,
+        news_fetcher=None,
         keyword_extractor=None,
         candidate_filter=None,
         telegram_sender=None,

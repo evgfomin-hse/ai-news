@@ -58,8 +58,9 @@ def test_samesite_none_still_requires_cookie_secure():
 def test_new_pipeline_settings_have_documented_defaults():
     s = Settings(**_kwargs())
     assert s.summary_schedule_hour == 3
-    assert s.gdelt_max_articles == 2000
-    assert s.gdelt_request_max_records == 250
+    assert s.news_api_language == "en"
+    assert s.news_request_page_size == 100
+    assert s.news_max_articles == 100
     assert s.per_user_filter_batch == 500
     assert s.per_user_filter_top_per_batch == 25
     assert s.per_user_digest_limit == 50

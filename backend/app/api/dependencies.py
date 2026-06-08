@@ -11,7 +11,7 @@ from app.core.database import SessionLocal
 from app.models import User
 from app.repositories.summary_repository import SummaryRepository
 from app.services.candidate_filter import PerUserCandidateFilter
-from app.services.gdelt_service import GdeltFetcherService
+from app.services.news_service import NewsApiFetcherService
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
 from app.services.keyword_extractor import KeywordExtractor
@@ -45,14 +45,15 @@ def _build_summarizer() -> LLMSummarizer | None:
     )
 
 
-def _build_gdelt_fetcher(db: Session) -> GdeltFetcherService:
-    """Returns a GDELT fetcher. No API key needed; GDELT is always enabled."""
-    return GdeltFetcherService(
+def _build_news_fetcher(db: Session) -> NewsApiFetcherService:
+    """Returns a NewsAPI fetcher. An empty key makes fetch_and_store raise, which the
+    pipeline swallows (it then runs against already-stored articles)."""
+    return NewsApiFetcherService(
         db,
-        max_articles=settings.gdelt_max_articles,
-        max_records_per_request=settings.gdelt_request_max_records,
-        min_request_interval_seconds=settings.gdelt_min_request_interval_seconds,
-        max_retries=settings.gdelt_max_retries,
+        api_key=settings.news_api_key,
+        language=settings.news_api_language,
+        page_size=settings.news_request_page_size,
+        max_articles=settings.news_max_articles,
     )
 
 
@@ -117,7 +118,7 @@ def get_summary_maintenance_service(
     return SummaryMaintenanceService(
         db,
         summarizer=_build_summarizer(),
-        gdelt_fetcher=_build_gdelt_fetcher(db),
+        news_fetcher=_build_news_fetcher(db),
         keyword_extractor=_build_keyword_extractor(),
         candidate_filter=_build_candidate_filter(),
         telegram_sender=_build_telegram_sender(),

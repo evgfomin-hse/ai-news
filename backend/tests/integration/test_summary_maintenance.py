@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Interest, NewsArticle, User
 from app.repositories.summary_repository import SummaryRepository
-from app.services.gdelt_service import GdeltFetchError
+from app.services.news_service import NewsFetchError
 from app.services.summary_service import (
     MockSummaryService,
     SummaryMaintenanceService,
@@ -21,7 +21,7 @@ from app.services.summary_service import (
 
 @dataclass
 class _CountingFetcher:
-    """Stand-in for `GdeltFetcherService` — records calls, returns a configured count."""
+    """Stand-in for `NewsApiFetcherService` — records calls, returns a configured count."""
 
     return_count: int = 0
     raise_error: Exception | None = None
@@ -85,7 +85,7 @@ def test_users_without_interests_are_skipped(db: Session, user: User):
     svc = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=_CountingFetcher(return_count=0),
+        news_fetcher=_CountingFetcher(return_count=0),
         keyword_extractor=_StubKeywordExtractor(response="(AI OR robotics)"),
         candidate_filter=_StubCandidateFilter(),
         telegram_sender=None,
@@ -108,7 +108,7 @@ def test_when_no_users_have_interests_keyword_extractor_and_gdelt_are_not_called
     svc = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=fetcher,
+        news_fetcher=fetcher,
         keyword_extractor=extractor,
         candidate_filter=_StubCandidateFilter(),
     )
@@ -130,7 +130,7 @@ def test_keyword_extractor_returning_none_skips_gdelt_but_still_calls_digest(
     svc = SummaryMaintenanceService(
         db,
         summarizer=summarizer,
-        gdelt_fetcher=fetcher,
+        news_fetcher=fetcher,
         keyword_extractor=_StubKeywordExtractor(response=None),
         candidate_filter=_StubCandidateFilter(),
     )
@@ -145,18 +145,18 @@ def test_keyword_extractor_returning_none_skips_gdelt_but_still_calls_digest(
 
 def test_gdelt_fetch_error_is_swallowed_and_run_continues(db: Session, user: User):
     _add_interest(db, user.id, "AI")
-    fetcher = _CountingFetcher(raise_error=GdeltFetchError("boom"))
+    fetcher = _CountingFetcher(raise_error=NewsFetchError("boom"))
 
     svc = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(),
-        gdelt_fetcher=fetcher,
+        news_fetcher=fetcher,
         keyword_extractor=_StubKeywordExtractor(response="(AI)"),
         candidate_filter=_StubCandidateFilter(),
     )
     stats = svc.run_bulk_for_all_users()
 
-    assert stats["gdelt_articles_fetched"] == 0
+    assert stats["news_articles_fetched"] == 0
     assert stats["users_processed"] == 1
 
 
@@ -169,7 +169,7 @@ def test_user_with_interests_but_digest_failure_is_skipped_with_no_row(
     svc = SummaryMaintenanceService(
         db,
         summarizer=_StubSummarizer(raise_error=LLMError("boom")),
-        gdelt_fetcher=_CountingFetcher(),
+        news_fetcher=_CountingFetcher(),
         keyword_extractor=_StubKeywordExtractor(response="(AI)"),
         candidate_filter=_StubCandidateFilter(),
     )
@@ -186,7 +186,7 @@ def test_date_label_passed_to_prompt_is_yesterday(db: Session, user: User):
     svc = SummaryMaintenanceService(
         db,
         summarizer=summarizer,
-        gdelt_fetcher=_CountingFetcher(),
+        news_fetcher=_CountingFetcher(),
         keyword_extractor=_StubKeywordExtractor(response="(AI)"),
         candidate_filter=_StubCandidateFilter(),
     )
@@ -253,7 +253,7 @@ def test_full_happy_path_news_flows_through_filter_into_prompt(db: Session, user
     svc = SummaryMaintenanceService(
         db,
         summarizer=summarizer,
-        gdelt_fetcher=_CountingFetcher(return_count=0),  # no new fetch needed; rows already exist
+        news_fetcher=_CountingFetcher(return_count=0),  # no new fetch needed; rows already exist
         keyword_extractor=_StubKeywordExtractor(response="(AI OR robotics)"),
         candidate_filter=filter_stub,
         telegram_sender=None,

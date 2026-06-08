@@ -48,3 +48,38 @@ export async function fetchScore(
     if (body === null) return null;
     return { value: body.value, description: body.description };
 }
+
+/**
+ * Ensures the e2e user has at least `min` summary rows, generating only the
+ * shortfall via POST /api/summary/generate. Rows only accumulate, so this keeps
+ * a ">= N pages" precondition stable across runs. Returns the resulting total.
+ */
+export async function ensureSummaryCount(
+    context: BrowserContext,
+    min: number,
+): Promise<number> {
+    const readTotal = async (): Promise<number> => {
+        const res = await context.request.get(
+            "/api/summary?page=1&page_size=1",
+        );
+        if (!res.ok()) {
+            throw new Error(
+                `GET /api/summary failed: ${res.status()} ${await res.text()}`,
+            );
+        }
+        const body = (await res.json()) as { total: number };
+        return body.total;
+    };
+
+    let total = await readTotal();
+    while (total < min) {
+        const gen = await context.request.post("/api/summary/generate");
+        if (!gen.ok()) {
+            throw new Error(
+                `POST /api/summary/generate failed: ${gen.status()} ${await gen.text()}`,
+            );
+        }
+        total += 1;
+    }
+    return total;
+}

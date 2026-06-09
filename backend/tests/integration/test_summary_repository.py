@@ -21,7 +21,7 @@ def test_count_for_user_returns_zero_when_empty(db: Session, user: User):
 
 
 def test_count_for_user_only_counts_owned_rows(db: Session, user: User):
-    other = User(google_id="x", email="x@example.com")
+    other = User(subject="x", email="x@example.com")
     db.add(other)
     db.commit()
     db.refresh(other)
@@ -47,7 +47,7 @@ def test_list_page_respects_offset_and_limit(db: Session, user: User):
 
 def test_exists_for_user_is_true_only_for_owner(db: Session, user: User):
     [first, *_] = _add_summary(db, user, 1)
-    other = User(google_id="x2", email="x2@example.com")
+    other = User(subject="x2", email="x2@example.com")
     db.add(other)
     db.commit()
 

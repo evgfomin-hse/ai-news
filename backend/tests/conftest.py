@@ -63,7 +63,7 @@ def db(session_factory: sessionmaker[Session]) -> Iterator[Session]:
 @pytest.fixture
 def user(db: Session) -> User:
     row = User(
-        google_id="google-sub-test",
+        subject="oauth-sub-test",
         email="test@example.com",
         name="Test User",
         picture=None,

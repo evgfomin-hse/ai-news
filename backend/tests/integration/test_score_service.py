@@ -44,7 +44,7 @@ def test_upsert_for_user_rejects_unknown_summary(db: Session, user: User):
 
 
 def test_upsert_for_user_rejects_other_users_summary(db: Session, user: User):
-    other = User(google_id="other-sub", email="other@example.com", name="Other")
+    other = User(subject="other-sub", email="other@example.com", name="Other")
     db.add(other)
     db.commit()
     db.refresh(other)

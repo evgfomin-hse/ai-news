@@ -24,9 +24,9 @@ def test_patch_profile_noop_when_both_fields_none(db: Session, user: User):
 
 def test_get_or_create_delegates_to_repository(db: Session):
     created = UserService(db).get_or_create(
-        google_id="svc-sub", name="S", picture=None, email="s@example.com"
+        subject="svc-sub", name="S", picture=None, email="s@example.com"
     )
     assert created.id is not None
-    again = UserService(db).get_or_create(google_id="svc-sub", name="S2", picture=None, email=None)
+    again = UserService(db).get_or_create(subject="svc-sub", name="S2", picture=None, email=None)
     assert again.id == created.id
     assert again.name == "S2"

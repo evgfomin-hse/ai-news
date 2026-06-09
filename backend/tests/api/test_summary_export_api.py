@@ -62,7 +62,7 @@ def test_export_includes_score_columns_when_user_rated(
 
 
 def test_export_excludes_other_users_summaries(authed_client: TestClient, db: Session, user: User):
-    other = User(google_id="other-user", email="other@example.com")
+    other = User(subject="other-user", email="other@example.com")
     db.add(other)
     db.commit()
     db.refresh(other)

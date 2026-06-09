@@ -13,7 +13,7 @@ def test_get_by_id_returns_existing_user(db: Session, user: User):
 
 
 def test_list_all_ids_returns_every_user(db: Session, user: User):
-    db.add(User(google_id="g2", email="b@example.com"))
+    db.add(User(subject="g2", email="b@example.com"))
     db.commit()
     assert set(UserRepository(db).list_all_ids()) == {user.id, user.id + 1}
 
@@ -21,7 +21,7 @@ def test_list_all_ids_returns_every_user(db: Session, user: User):
 def test_get_or_create_inserts_when_missing(db: Session):
     repo = UserRepository(db)
     row = repo.get_or_create(
-        google_id="new-sub",
+        subject="new-sub",
         name="N",
         picture="https://example.com/p.png",
         email="n@example.com",
@@ -33,14 +33,14 @@ def test_get_or_create_inserts_when_missing(db: Session):
 
 def test_get_or_create_uses_placeholder_email_when_missing(db: Session):
     row = UserRepository(db).get_or_create(
-        google_id="no-email-sub", name="X", picture=None, email=None
+        subject="no-email-sub", name="X", picture=None, email=None
     )
-    assert row.email == "no-email-sub@google-subject.local"
+    assert row.email == "no-email-sub@oauth-subject.local"
 
 
 def test_get_or_create_updates_existing_user_profile(db: Session, user: User):
     updated = UserRepository(db).get_or_create(
-        google_id=user.google_id,
+        subject=user.subject,
         name="Renamed",
         picture="https://example.com/new.png",
         email="renamed@example.com",
@@ -54,7 +54,7 @@ def test_get_or_create_updates_existing_user_profile(db: Session, user: User):
 def test_get_or_create_keeps_existing_email_when_new_is_blank(db: Session, user: User):
     original = user.email
     updated = UserRepository(db).get_or_create(
-        google_id=user.google_id, name="N", picture=None, email="   "
+        subject=user.subject, name="N", picture=None, email="   "
     )
     assert updated.email == original
 

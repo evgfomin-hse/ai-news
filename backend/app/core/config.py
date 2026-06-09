@@ -17,16 +17,16 @@ class Settings(BaseSettings):
 
     database_url: str = ""
 
-    # Same OAuth 2.0 Client ID as VITE_APP_CLIENT_ID on the frontend (Google Sign-In).
+    # Same OAuth 2.0 Client ID as VITE_APP_CLIENT_ID on the frontend (OAuth Sign-In).
     google_client_id: str = ""
 
-    # Used to sign API session JWTs after Google login; use a long random string in production.
+    # Used to sign API session JWTs after login; use a long random string in production.
     jwt_secret: str = _PLACEHOLDER_JWT_SECRET
     jwt_algorithm: str = "HS256"
     session_ttl_seconds: int = 7 * 24 * 3600
 
     # When set, POST /auth/e2e/bootstrap-session (header X-E2E-Bootstrap-Secret) creates a
-    # real DB user + HttpOnly session JWT (same path as Google login). Leave empty in production.
+    # real DB user + HttpOnly session JWT (same path as login). Leave empty in production.
     e2e_bootstrap_secret: str = ""
 
     # Nightly job: insert one `summaries` row per user at 00:00 in

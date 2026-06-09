@@ -45,7 +45,7 @@ def test_put_score_returns_404_for_unknown_summary(authed_client: TestClient):
 
 
 def test_put_score_returns_404_for_other_users_summary(authed_client: TestClient, db: Session):
-    other = User(google_id="other", email="other@example.com")
+    other = User(subject="other", email="other@example.com")
     db.add(other)
     db.commit()
     db.refresh(other)
@@ -115,7 +115,7 @@ def test_get_score_returns_404_for_unknown_summary(authed_client: TestClient):
 
 
 def test_get_score_returns_404_for_other_users_summary(authed_client: TestClient, db: Session):
-    other = User(google_id="other", email="other2@example.com")
+    other = User(subject="other", email="other2@example.com")
     db.add(other)
     db.commit()
     db.refresh(other)

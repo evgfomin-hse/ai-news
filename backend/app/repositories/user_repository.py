@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.models import User
 
 
-def _placeholder_email(google_id: str) -> str:
-    return f"{google_id}@google-subject.local"
+def _placeholder_email(subject: str) -> str:
+    return f"{subject}@oauth-subject.local"
 
 
 class UserRepository:
@@ -22,19 +22,19 @@ class UserRepository:
     def get_or_create(
         self,
         *,
-        google_id: str,
+        subject: str,
         name: str,
         picture: str | None,
         email: str | None,
     ) -> User:
         resolved_email = (email.strip() if email and email.strip() else None) or _placeholder_email(
-            google_id
+            subject
         )
 
-        user = self._session.scalar(select(User).where(User.google_id == google_id))
+        user = self._session.scalar(select(User).where(User.subject == subject))
         if user is None:
             user = User(
-                google_id=google_id,
+                subject=subject,
                 name=name,
                 picture=picture,
                 email=resolved_email,
@@ -46,7 +46,7 @@ class UserRepository:
                 return user
             except IntegrityError:
                 self._session.rollback()
-                user = self._session.scalar(select(User).where(User.google_id == google_id))
+                user = self._session.scalar(select(User).where(User.subject == subject))
                 if user is None:
                     msg = "Could not create or load user after concurrent signup"
                     raise RuntimeError(msg) from None

@@ -13,8 +13,8 @@ class UserProfilePatch(BaseModel):
     picture: str | None = None
 
 
-class GoogleLoginBody(BaseModel):
-    token: str = Field(..., min_length=1, description="Google ID token (JWT) from credential")
+class LoginBody(BaseModel):
+    token: str = Field(..., min_length=1, description="OAuth ID token (JWT) from credential")
 
 
 class UserOut(BaseModel):
@@ -24,7 +24,7 @@ class UserOut(BaseModel):
     avatarUrl: str | None = None
 
 
-class GoogleLoginJson(BaseModel):
+class LoginJson(BaseModel):
     """Returned in the response body; session JWT is only in an HttpOnly cookie."""
 
     user: UserOut

@@ -15,13 +15,13 @@ class UserService:
     def get_or_create(
         self,
         *,
-        google_id: str,
+        subject: str,
         name: str,
         picture: str | None,
         email: str | None,
     ) -> User:
         return self._users.get_or_create(
-            google_id=google_id,
+            subject=subject,
             name=name,
             picture=picture,
             email=email,

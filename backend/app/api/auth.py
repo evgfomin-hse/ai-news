@@ -9,7 +9,7 @@ from google.oauth2 import id_token
 
 from app.api.dependencies import get_user_service
 from app.core.config import settings
-from app.schemas.user import GoogleLoginBody, GoogleLoginJson, UserOut
+from app.schemas.user import LoginBody, LoginJson, UserOut
 from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
@@ -55,12 +55,12 @@ def _clear_session_cookie(response: Response) -> None:
     )
 
 
-@router.post("/google-login", response_model=GoogleLoginJson)
-def google_login(
-    body: GoogleLoginBody,
+@router.post("/login", response_model=LoginJson)
+def login(
+    body: LoginBody,
     users: Annotated[UserService, Depends(get_user_service)],
     response: Response,
-) -> GoogleLoginJson:
+) -> LoginJson:
     if not settings.google_client_id.strip():
         raise HTTPException(
             status_code=503,
@@ -76,12 +76,12 @@ def google_login(
             settings.google_client_id,
         )
     except ValueError as exc:
-        logger.info("Google token verification failed: %s", exc)
-        raise HTTPException(status_code=401, detail="Invalid Google credential") from exc
+        logger.info("OAuth token verification failed: %s", exc)
+        raise HTTPException(status_code=401, detail="Invalid credential") from exc
 
-    google_sub = idinfo.get("sub")
-    if not google_sub:
-        raise HTTPException(status_code=401, detail="Invalid Google credential")
+    subject = idinfo.get("sub")
+    if not subject:
+        raise HTTPException(status_code=401, detail="Invalid credential")
 
     email = idinfo.get("email")
     if not isinstance(email, str):
@@ -92,7 +92,7 @@ def google_login(
         picture = None
 
     user = users.get_or_create(
-        google_id=str(google_sub),
+        subject=str(subject),
         name=str(name),
         picture=picture,
         email=email,
@@ -101,7 +101,7 @@ def google_login(
     app_token = _issue_app_token(str(user.id), user.name or "", user.picture)
     _set_session_cookie(response, app_token)
 
-    return GoogleLoginJson(
+    return LoginJson(
         user=UserOut(
             id=str(user.id),
             username=user.name or "",
@@ -117,16 +117,16 @@ def logout(response: Response) -> dict[str, bool]:
     return {"ok": True}
 
 
-E2E_GOOGLE_SUBJECT = "e2e-playwright-google-subject"
+E2E_OAUTH_SUBJECT = "e2e-playwright-oauth-subject"
 E2E_USER_EMAIL = "e2e-playwright@example.invalid"
 
 
-@router.post("/e2e/bootstrap-session", response_model=GoogleLoginJson)
+@router.post("/e2e/bootstrap-session", response_model=LoginJson)
 def e2e_bootstrap_session(
     request: Request,
     users: Annotated[UserService, Depends(get_user_service)],
     response: Response,
-) -> GoogleLoginJson:
+) -> LoginJson:
     """Real session + DB user for browser e2e. Disabled unless E2E_BOOTSTRAP_SECRET is set."""
     configured = settings.e2e_bootstrap_secret.strip()
     if not configured:
@@ -135,14 +135,14 @@ def e2e_bootstrap_session(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     user = users.get_or_create(
-        google_id=E2E_GOOGLE_SUBJECT,
+        subject=E2E_OAUTH_SUBJECT,
         name="E2E User",
         picture=None,
         email=E2E_USER_EMAIL,
     )
     app_token = _issue_app_token(str(user.id), user.name or "", user.picture)
     _set_session_cookie(response, app_token)
-    return GoogleLoginJson(
+    return LoginJson(
         user=UserOut(
             id=str(user.id),
             username=user.name or "",

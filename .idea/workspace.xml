@@ -4,15 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="20552074-cac4-4e53-b3e5-90eb896110c8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.env.example" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Home/Home.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Home/Home.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login/Login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login/Login.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Settings/Settings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Settings/Settings.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/shared/api/calls/auth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/shared/api/calls/auth.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/shared/api/calls/transports.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/shared/api/calls/transports.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/shared/api/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/shared/api/index.ts" afterDir="false" />
+    <list default="true" id="20552074-cac4-4e53-b3e5-90eb896110c8" name="Changes" comment="fix">
+      <change afterPath="$PROJECT_DIR$/backend/tests/api/test_auth_login_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/api/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/api/auth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/models/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/models/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/repositories/user_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/repositories/user_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/schemas/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/schemas/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/services/user_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/services/user_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_auth_google_api.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_score_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/api/test_score_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_summary_export_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/api/test_summary_export_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_score_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_score_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_user_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_user_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_user_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_user_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,6 +80,12 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecapSpentCounter">
+    <option name="endsOfQuotaMs" value="1783098019508" />
+  </component>
+  <component name="RecapUselessUpdatesCounter">
+    <option name="suspendCountdown" value="9" />
+  </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/backend" />
@@ -104,8 +118,17 @@
       <workItem from="1779525911336" duration="10000" />
       <workItem from="1779526003882" duration="1544000" />
       <workItem from="1779527926907" duration="5082000" />
-      <workItem from="1780968186422" duration="736000" />
+      <workItem from="1780968186422" duration="1379000" />
     </task>
+    <task id="LOCAL-00001" summary="fix">
+      <option name="closed" value="true" />
+      <created>1780968935216</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1780968935217</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

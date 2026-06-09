@@ -77,7 +77,7 @@ def _add_interest(db: Session, user_id: int, text: str) -> None:
 
 
 def test_users_without_interests_are_skipped(db: Session, user: User):
-    other = User(google_id="g2", email="b@example.com")
+    other = User(subject="g2", email="b@example.com")
     db.add(other)
     db.commit()
     _add_interest(db, user.id, "AI, robotics")  # only `user` has interests

@@ -376,17 +376,20 @@ class SummaryMaintenanceService:
             TransportService(self._session),
         )
 
-    def append_placeholder_for_user(self, user_id: int) -> int:
+    def append_placeholder_for_user(self, user_id: int, *, force_placeholder: bool = False) -> int:
         """User-triggered POST /summary/generate. Uses the real pipeline when configured.
 
         Does NOT fetch news (that's a bulk-job responsibility). Uses whatever news rows
         the daily job has most recently stored. Falls back to placeholder on LLM error
         or when no summarizer is configured. The resulting summary is also pushed to
         the user's Telegram chat when both a sender and a configured transport exist.
+
+        `force_placeholder=True` skips the LLM entirely and inserts the deterministic
+        placeholder row regardless of summarizer configuration (used by e2e/CI).
         """
         today_label = datetime.now(UTC).strftime("%Y-%m-%d")
         interests, scores, news, summaries, transports = self._components()
-        if self._summarizer is None:
+        if force_placeholder or self._summarizer is None:
             body = _placeholder_body()
             summaries.append_row(user_id=user_id, summary=body, created_at=naive_utc_now())
         else:

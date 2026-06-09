@@ -9,6 +9,18 @@ class SummaryItem(BaseModel):
     body: str
 
 
+class GenerateSummaryRequest(BaseModel):
+    """Body for POST /summary/generate."""
+
+    placeholder: bool = Field(
+        default=False,
+        description=(
+            "When true, skip the LLM and insert a deterministic placeholder row instead. "
+            "Used by e2e/CI so summary generation never depends on a running LLM backend."
+        ),
+    )
+
+
 class UserSummaryResponse(BaseModel):
     """Paginated `public.summaries` rows for the current user."""
 

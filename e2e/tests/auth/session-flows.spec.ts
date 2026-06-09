@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { bootstrapSession } from "./helpers/bootstrap";
-import { fetchScore, generateSummary } from "./helpers/data";
+import { bootstrapSession } from "../helpers/bootstrap";
+import { fetchScore, generateSummary } from "../helpers/data";
 
 test.describe("authenticated", () => {
     test.beforeEach(async ({ context }) => {
@@ -70,14 +70,16 @@ test.describe("authenticated", () => {
 
         // Open the newest summary by its accessible label (set in Home.tsx:268).
         const row = page.getByRole("button", {
-            name: new RegExp(`open summary ${seeded.id}`),
+            name: new RegExp(`open summary ${seeded.id}`, "i"),
         });
         await row.first().click();
 
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
+        // `exact` so the modal title isn't confused with the body's "Daily summary —
+        // <same timestamp> UTC" heading from the placeholder markdown.
         await expect(
-            dialog.getByRole("heading", { name: seeded.title }),
+            dialog.getByRole("heading", { name: seeded.title, exact: true }),
         ).toBeVisible();
 
         // Vote Like and wait for the inline status to confirm persistence.
@@ -110,7 +112,7 @@ test.describe("authenticated", () => {
         ).toBeVisible({ timeout: 15_000 });
         await page
             .getByRole("button", {
-                name: new RegExp(`open summary ${seeded.id}`),
+                name: new RegExp(`open summary ${seeded.id}`, "i"),
             })
             .first()
             .click();

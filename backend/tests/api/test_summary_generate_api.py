@@ -14,3 +14,13 @@ def test_generate_inserts_one_summary_row(authed_client: TestClient):
     listed = authed_client.get("/summary").json()
     assert listed["total"] == 1
     assert listed["items"][0]["body"].startswith("## Daily summary")
+
+
+def test_generate_accepts_placeholder_flag(authed_client: TestClient):
+    resp = authed_client.post("/summary/generate", json={"placeholder": True})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "rows_inserted": 1}
+
+    listed = authed_client.get("/summary").json()
+    assert listed["total"] == 1
+    assert "Wire your own pipeline" in listed["items"][0]["body"]

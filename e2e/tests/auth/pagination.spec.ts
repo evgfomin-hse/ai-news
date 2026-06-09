@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { bootstrapSession } from "./helpers/bootstrap";
-import { ensureSummaryCount } from "./helpers/data";
+import { bootstrapSession } from "../helpers/bootstrap";
+import { ensureSummaryCount } from "../helpers/data";
 
 test.describe("authenticated · pagination", () => {
     test.beforeEach(async ({ context }) => {

@@ -1,5 +1,9 @@
 import type { BrowserContext } from "@playwright/test";
 
+// `placeholder: true` makes the backend skip the LLM and insert a deterministic
+// placeholder row, so seeding never depends on a running LLM backend.
+const GENERATE_PLACEHOLDER = { data: { placeholder: true } } as const;
+
 /**
  * Hits POST /api/summary/generate to insert one new summary row for the e2e user.
  *
@@ -9,7 +13,10 @@ import type { BrowserContext } from "@playwright/test";
 export async function generateSummary(
     context: BrowserContext,
 ): Promise<{ id: string; title: string; body: string }> {
-    const gen = await context.request.post("/api/summary/generate");
+    const gen = await context.request.post(
+        "/api/summary/generate",
+        GENERATE_PLACEHOLDER,
+    );
     if (!gen.ok()) {
         throw new Error(
             `POST /api/summary/generate failed: ${gen.status()} ${await gen.text()}`,
@@ -73,7 +80,10 @@ export async function ensureSummaryCount(
 
     let total = await readTotal();
     while (total < min) {
-        const gen = await context.request.post("/api/summary/generate");
+        const gen = await context.request.post(
+            "/api/summary/generate",
+            GENERATE_PLACEHOLDER,
+        );
         if (!gen.ok()) {
             throw new Error(
                 `POST /api/summary/generate failed: ${gen.status()} ${await gen.text()}`,

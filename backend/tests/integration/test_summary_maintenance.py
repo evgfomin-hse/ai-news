@@ -198,6 +198,30 @@ def test_date_label_passed_to_prompt_is_yesterday(db: Session, user: User):
     )
 
 
+def test_append_placeholder_for_user_force_placeholder_skips_llm(db: Session, user: User):
+    """The e2e/CI flag must insert a placeholder without ever calling the summarizer."""
+    summarizer = _StubSummarizer()
+    svc = SummaryMaintenanceService(db, summarizer=summarizer, telegram_sender=None)
+
+    n = svc.append_placeholder_for_user(user.id, force_placeholder=True)
+
+    assert n == 1
+    assert summarizer.seen_prompts == []  # LLM never invoked
+    rows = SummaryRepository(db).list_page_for_user(user.id, offset=0, limit=1)
+    assert "Wire your own pipeline" in rows[0].summary
+
+
+def test_append_placeholder_for_user_uses_llm_by_default(db: Session, user: User):
+    summarizer = _StubSummarizer()
+    svc = SummaryMaintenanceService(db, summarizer=summarizer, telegram_sender=None)
+
+    svc.append_placeholder_for_user(user.id)
+
+    assert len(summarizer.seen_prompts) == 1  # default path calls the LLM
+    rows = SummaryRepository(db).list_page_for_user(user.id, offset=0, limit=1)
+    assert "wired" in rows[0].summary
+
+
 # Preserved tests for unrelated helpers
 def test_insert_generated_summary_for_user_returns_one(db: Session, user: User):
     assert insert_generated_summary_for_user(db, user.id) == 1

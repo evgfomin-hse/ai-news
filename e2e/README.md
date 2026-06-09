@@ -41,23 +41,32 @@ port 5173 before the suite runs, and reuses already-running instances locally.
 
 ## Test layout
 
-- `tests/guest.spec.ts` — unauthenticated landing and protected-route guard
-- `tests/session-flows.spec.ts` — home, interests roundtrip, score persistence
+Specs are split by auth zone: `tests/unauth/` runs without a session,
+`tests/auth/` bootstraps a session first. Shared helpers live in `tests/helpers/`.
+
+**Unauthenticated (`tests/unauth/`)**
+
+- `guest.spec.ts` — unauthenticated landing and protected-route guard
+
+**Authenticated (`tests/auth/`)** — each bootstraps a session in `beforeEach`
+
+- `session-flows.spec.ts` — home, interests roundtrip, score persistence
   (vote → cache → reload → server fetch), logout, unknown-route fallback
-- `tests/settings-transport.spec.ts` — Telegram transport panel: token save,
+- `settings-transport.spec.ts` — Telegram transport panel: token save,
   chat-id validation, persistence, disabled states (serial; shares one
   transport row). Excludes the live-Telegram "Test bot"/send paths.
-- `tests/feedback.spec.ts` — dislike vote + comment: lock-before-vote,
-  debounced save, backend cross-check, survives reload
-- `tests/pagination.spec.ts` — feed PREV/NEXT pager and disabled states
+- `pagination.spec.ts` — feed PREV/NEXT pager and disabled states
   (seeds ≥7 rows via `ensureSummaryCount`)
-- `tests/helpers/bootstrap.ts` — `POST /auth/e2e/bootstrap-session` to mint a
-  real session cookie; skips tests cleanly when `E2E_BOOTSTRAP_SECRET` is unset
-- `tests/helpers/data.ts` — `generateSummary` / `fetchScore` / `ensureSummaryCount`
-  for seeding via API so tests don't depend on an LLM being configured (the
+
+**Helpers (`tests/helpers/`)**
+
+- `bootstrap.ts` — `POST /auth/e2e/bootstrap-session` to mint a real session
+  cookie; skips tests cleanly when `E2E_BOOTSTRAP_SECRET` is unset
+- `data.ts` — `generateSummary` / `fetchScore` / `ensureSummaryCount` for
+  seeding via API so tests don't depend on an LLM being configured (the
   placeholder summary path is deterministic and free)
-- `tests/helpers/transport.ts` — `clearTransport` resets the transport row to an
-  empty baseline (used by the serial transport spec)
+- `transport.ts` — `clearTransport` resets the transport row to an empty
+  baseline (used by the serial transport spec)
 
 ## Notes
 
@@ -65,7 +74,9 @@ port 5173 before the suite runs, and reuses already-running instances locally.
   `e2e-playwright@example.invalid`). State persists across runs — tests are
   written to be idempotent (seed a fresh row when needed, use `Date.now()`
   markers for interests).
-- If `OPENROUTER_API_KEY` is set in `backend/.env`, `POST /summary/generate`
-  will call the real LLM during tests. To keep tests deterministic and free,
-  leave it unset for e2e runs — the placeholder summary path is what the tests
-  assert against.
+- `POST /summary/generate` never calls a real LLM during e2e: the `data.ts`
+  seeding helpers send `{ "placeholder": true }`, which tells the backend to skip
+  the LLM and insert the deterministic placeholder row the tests assert against.
+  This holds regardless of which LLM backend `backend/.env` points at (including a
+  local no-key LM Studio). The flag is per-request, so it needs no env/config change
+  and no backend restart.

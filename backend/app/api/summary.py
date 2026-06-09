@@ -12,7 +12,7 @@ from app.api.dependencies import (
 )
 from app.models import User
 from app.repositories.summary_repository import SummaryRepository
-from app.schemas.summary import UserSummaryResponse
+from app.schemas.summary import GenerateSummaryRequest, UserSummaryResponse
 from app.services.summary_export import build_summaries_csv
 from app.services.summary_service import SummaryMaintenanceService, SummaryService
 
@@ -37,9 +37,15 @@ def get_summary(
 def generate_summary(
     user: Annotated[User, Depends(get_current_user)],
     maintenance: Annotated[SummaryMaintenanceService, Depends(get_summary_maintenance_service)],
+    body: GenerateSummaryRequest | None = None,
 ) -> dict[str, bool | int]:
-    """Insert one `summaries` row for the current user (same template as the nightly job)."""
-    n = maintenance.append_placeholder_for_user(user.id)
+    """Insert one `summaries` row for the current user.
+
+    Runs the real LLM pipeline when configured. Pass `{"placeholder": true}` to skip the
+    LLM and insert a deterministic placeholder instead (used by e2e/CI).
+    """
+    force_placeholder = body.placeholder if body is not None else False
+    n = maintenance.append_placeholder_for_user(user.id, force_placeholder=force_placeholder)
     return {"ok": True, "rows_inserted": n}
 
 

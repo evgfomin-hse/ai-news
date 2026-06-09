@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { bootstrapSession } from "./helpers/bootstrap";
-import { clearTransport } from "./helpers/transport";
+import { bootstrapSession } from "../helpers/bootstrap";
+import { clearTransport } from "../helpers/transport";
 
 // All users share one transport row, so these mutate shared state and must not
 // run in parallel with each other.

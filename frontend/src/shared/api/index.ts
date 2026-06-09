@@ -1,7 +1,7 @@
 export { type ApiErrorBody, parseFastApiDetail } from './client';
 export {
   getSessionUser,
-  postGoogleLogin,
+  postLogin,
   postLogout,
   type SessionUser as SessionUserJson,
 } from './calls/auth';
@@ -14,7 +14,7 @@ export {
 export {
   getTransport,
   patchTransport,
-  postTelegramCaptureHello,
+  postTelegramCaptureMessage,
   postTelegramTest,
   postTransportSendMessage,
   type SendMessageResponse,

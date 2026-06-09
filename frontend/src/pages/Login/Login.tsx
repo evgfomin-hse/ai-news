@@ -1,7 +1,7 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import type { FC } from 'react';
 import { useState } from 'react';
-import { postGoogleLogin } from '../../shared/api';
+import { postLogin } from '../../shared/api';
 import { useAuth } from '../../features/Auth/AuthProvider';
 import styles from './style.module.css';
 
@@ -17,7 +17,8 @@ const Login: FC = () => {
     try {
       const token = credentialResponse.credential;
       if (!token) throw new Error('Login failed');
-      const data = await postGoogleLogin(token);
+
+      const data = await postLogin(token);
 
       login({
         user: {

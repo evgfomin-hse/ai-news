@@ -19,10 +19,10 @@ export async function postLogout(): Promise<void> {
   await apiFetch('/auth/logout', { method: 'POST' });
 }
 
-export async function postGoogleLogin(
+export async function postLogin(
   idToken: string,
 ): Promise<{ user: SessionUser }> {
-  const response = await apiFetch('/auth/google-login', {
+  const response = await apiFetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: idToken }),

@@ -37,7 +37,7 @@ export type TelegramCaptureHelloResponse = {
   detail?: unknown;
 };
 
-export async function postTelegramCaptureHello(): Promise<{
+export async function postTelegramCaptureMessage(): Promise<{
   response: Response;
   body: TelegramCaptureHelloResponse;
 }> {

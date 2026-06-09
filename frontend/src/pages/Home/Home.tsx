@@ -14,13 +14,11 @@ import {
 import { useAuth } from '../../features/Auth';
 import styles from './style.module.css';
 
-/** Rows per page on home (matches “6 bullets” layout). */
 const PAGE_SIZE = 6;
 
 const markdownComponents: Components = {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  a: ({ node: _node, ...props }) => (
-    <a {...props} target="_blank" rel="noreferrer noopener" />
+  a: ({ ...props }) => (
+    <a {...props} rel="noreferrer noopener" />
   ),
 };
 
@@ -33,13 +31,13 @@ const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
 );
 
 function formatGeneratedAt(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function formatListDate(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  return d.toLocaleDateString('en-GB', {
+  const date = new Date(`${iso}T12:00:00Z`);
+  return date.toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -47,7 +45,6 @@ function formatListDate(iso: string): string {
   });
 }
 
-/** One-line preview for bullet rows (markdown shown in empty-state only). */
 function previewPlain(body: string, max = 200): string {
   const flat = body.replace(/\s+/g, ' ').trim();
   if (flat.length <= max) return flat;
@@ -66,14 +63,13 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-/** Milliseconds from `from` until the next 00:00:00.000 UTC. */
 function msUntilNextUtcMidnight(from: Date): number {
-  const y = from.getUTCFullYear();
-  const mo = from.getUTCMonth();
-  const da = from.getUTCDate();
-  const startUtcDay = Date.UTC(y, mo, da, 0, 0, 0, 0);
+  const year = from.getUTCFullYear();
+  const month = from.getUTCMonth();
+  const day = from.getUTCDate();
+  const startUtcDay = Date.UTC(year, month, day, 0, 0, 0, 0);
   const next =
-    from.getTime() < startUtcDay ? startUtcDay : Date.UTC(y, mo, da + 1, 0, 0, 0, 0);
+    from.getTime() < startUtcDay ? startUtcDay : Date.UTC(year, month, day + 1, 0, 0, 0, 0);
   return next - from.getTime();
 }
 
@@ -86,20 +82,20 @@ const DropCountdown: FC = () => {
   }, []);
 
   const msLeft = msUntilNextUtcMidnight(now);
-  const totalSec = Math.max(0, Math.floor(msLeft / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
+  const totalSeconds = Math.max(0, Math.floor(msLeft / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-  const y = now.getUTCFullYear();
-  const mo = now.getUTCMonth();
-  const da = now.getUTCDate();
-  const startUtcDay = Date.UTC(y, mo, da, 0, 0, 0, 0);
+  const yer = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const day = now.getUTCDate();
+  const startUtcDay = Date.UTC(yer, month, day, 0, 0, 0, 0);
   const dayProgress = Math.min(1, Math.max(0, (now.getTime() - startUtcDay) / MS_DAY));
 
   const nextIso = new Date(now.getTime() + msLeft).toISOString().slice(0, 10);
 
-  const ariaLabel = `${h} hours, ${m} minutes, ${s} seconds until the next drop at midnight UTC`;
+  const ariaLabel = `${hours} hours, ${minutes} minutes, ${seconds} seconds until the next drop at midnight UTC`;
 
   return (
     <div
@@ -109,15 +105,15 @@ const DropCountdown: FC = () => {
       aria-label={ariaLabel}
     >
       <div className={styles.dropCountRow}>
-        <div className={styles.dropSeg}>{pad2(h)}</div>
+        <div className={styles.dropSeg}>{pad2(hours)}</div>
         <span className={styles.dropSep} aria-hidden>
           :
         </span>
-        <div className={styles.dropSeg}>{pad2(m)}</div>
+        <div className={styles.dropSeg}>{pad2(minutes)}</div>
         <span className={styles.dropSep} aria-hidden>
           :
         </span>
-        <div className={styles.dropSeg}>{pad2(s)}</div>
+        <div className={styles.dropSeg}>{pad2(seconds)}</div>
       </div>
       <div className={styles.dropProgress} aria-hidden>
         <div className={styles.dropProgressFill} style={{ width: `${dayProgress * 100}%` }} />
@@ -162,18 +158,22 @@ const Home: FC = () => {
   }, []);
 
   useEffect(() => {
-    void fetchSummaryPage(1);
+    fetchSummaryPage(1);
   }, [fetchSummaryPage]);
 
   useEffect(() => {
     if (!detailItem) return;
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     modalCloseRef.current?.focus();
+
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') setDetailItem(null);
     };
+
     window.addEventListener('keydown', onKey);
+
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
@@ -195,7 +195,9 @@ const Home: FC = () => {
   const persistScore = useCallback(
     async (summaryId: string, liked: boolean, description: string) => {
       const numericId = Number(summaryId);
+
       if (!Number.isInteger(numericId) || numericId <= 0) return;
+
       setFeedbackBySummaryId((prev) => {
         const current = prev[summaryId] ?? { liked, description, saving: false, error: null };
         return { ...prev, [summaryId]: { ...current, saving: true, error: null } };
@@ -221,37 +223,43 @@ const Home: FC = () => {
 
   const setDetailVote = (liked: boolean) => {
     if (!detailItem) return;
+
     const summaryId = detailItem.id;
+
     if (descriptionTimerRef.current != null) {
       clearTimeout(descriptionTimerRef.current);
       descriptionTimerRef.current = null;
     }
+
     setFeedbackBySummaryId((prev) => {
       const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
       return { ...prev, [summaryId]: { ...current, liked } };
     });
+
     const existing = feedbackBySummaryId[summaryId];
     const description = existing?.description ?? '';
-    void persistScore(summaryId, liked, description);
+    persistScore(summaryId, liked, description);
   };
 
   const setDetailDescription = (description: string) => {
     if (!detailItem) return;
+
     const summaryId = detailItem.id;
     setFeedbackBySummaryId((prev) => {
       const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
       return { ...prev, [summaryId]: { ...current, description } };
     });
-    // Backend requires a vote (PUT /score requires `value`), so we only persist description after one is cast.
+
     const existing = feedbackBySummaryId[summaryId];
     const liked = existing?.liked;
     if (liked === undefined || liked === null) return;
     if (descriptionTimerRef.current != null) {
       clearTimeout(descriptionTimerRef.current);
     }
+
     descriptionTimerRef.current = setTimeout(() => {
       descriptionTimerRef.current = null;
-      void persistScore(summaryId, liked, description);
+      persistScore(summaryId, liked, description);
     }, DESCRIPTION_DEBOUNCE_MS);
   };
 
@@ -264,15 +272,20 @@ const Home: FC = () => {
     };
   }, []);
 
-  // Load existing score from the server the first time a summary's modal is opened in this session.
   useEffect(() => {
     if (!detailItem) return;
+
     const summaryId = detailItem.id;
+
     if (feedbackBySummaryId[summaryId] !== undefined) return;
+
     const numericId = Number(summaryId);
+
     if (!Number.isInteger(numericId) || numericId <= 0) return;
+
     let cancelled = false;
-    void (async () => {
+
+    (async () => {
       try {
         const score = await getScore(numericId);
         if (cancelled) return;
@@ -288,10 +301,9 @@ const Home: FC = () => {
             },
           };
         });
-      } catch {
-        // Leave feedback unseeded; the user can still vote, which will (re)try the server.
-      }
+      } catch { }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -415,7 +427,7 @@ const Home: FC = () => {
                   type="button"
                   className={styles.swBtn}
                   disabled={loading || !summaryPayload || summaryPayload.page <= 1}
-                  onClick={() => void fetchSummaryPage(summaryPayload.page - 1)}
+                  onClick={() => fetchSummaryPage(summaryPayload.page - 1)}
                 >
                   ← PREV
                 </button>
@@ -423,7 +435,7 @@ const Home: FC = () => {
                   type="button"
                   className={styles.swBtn}
                   disabled={loading || !summaryPayload || summaryPayload.page >= summaryPayload.total_pages}
-                  onClick={() => void fetchSummaryPage(summaryPayload.page + 1)}
+                  onClick={() => fetchSummaryPage(summaryPayload.page + 1)}
                 >
                   NEXT →
                 </button>
@@ -455,6 +467,7 @@ const Home: FC = () => {
             feedbackBySummaryId[detailItem.id] ??
             ({ liked: null, description: '', saving: false, error: null } as SummaryFeedback);
           const voteLocked = feedback.liked === null || feedback.liked === undefined;
+
           return (
         <div
           className={styles.modalBackdrop}

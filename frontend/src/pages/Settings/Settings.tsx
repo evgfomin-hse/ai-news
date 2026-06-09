@@ -12,7 +12,7 @@ import {
   parseFastApiDetail,
   patchInterest,
   patchTransport,
-  postTelegramCaptureHello,
+  postTelegramCaptureMessage,
   postTelegramTest,
   postTransportSendMessage,
   type InterestView,
@@ -135,6 +135,7 @@ const Settings: FC = () => {
     setSaving(true);
     setError(null);
     setMessage(null);
+
     try {
       await persistTransportPatch({ telegramBotToken: tokenInput });
       setTokenInput('');
@@ -151,6 +152,7 @@ const Settings: FC = () => {
     setSaving(true);
     setError(null);
     setMessage(null);
+
     try {
       await persistTransportPatch({ telegramChatId: chatInput.trim() });
       setMessage('Chat id saved.');
@@ -167,6 +169,7 @@ const Settings: FC = () => {
     setSaving(true);
     setError(null);
     setMessage(null);
+
     try {
       await persistTransportPatch({ telegramBotToken: '' });
       setChatInput('');
@@ -178,17 +181,16 @@ const Settings: FC = () => {
     }
   };
 
-  /** `retry` = keep polling; `done` = stop (linked, fatal error, or timeout). */
   const pollCaptureHelloOnce = useCallback(async (): Promise<'retry' | 'done'> => {
-    const { response: r, body: j } = await postTelegramCaptureHello();
+    const { response, body } = await postTelegramCaptureMessage();
 
-    if (r.status === 409 || !r.ok) {
+    if (response.status === 409 || !response.ok) {
       clearHelloPoll();
-      setError(parseFastApiDetail(j));
+      setError(parseFastApiDetail(body));
       return 'done';
     }
 
-    if (j.linked && j.chatId) {
+    if (body.linked && body.chatId) {
       if (pollTimerRef.current != null) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
@@ -198,22 +200,23 @@ const Settings: FC = () => {
       setHelloHint(null);
       setTransport((prev) =>
         prev
-          ? { ...prev, telegramChatId: j.chatId as string }
+          ? { ...prev, telegramChatId: body.chatId as string }
           : {
               transportId: null,
               telegramConfigured: true,
-              telegramChatId: j.chatId as string,
+              telegramChatId: body.chatId as string,
             },
       );
-      setChatInput(j.chatId);
-      setMessage(`Linked your chat automatically. Chat id: ${j.chatId}`);
+      setChatInput(body.chatId);
+      setMessage(`Linked your chat automatically. Chat id: ${body.chatId}`);
       setError(null);
       void loadTransport();
       return 'done';
     }
 
-    setHelloHint(j.hint ?? 'Waiting for hello…');
+    setHelloHint(body.hint ?? 'Waiting for hello…');
     pollAttemptsRef.current += 1;
+
     if (pollAttemptsRef.current >= HELLO_MAX_POLLS) {
       clearHelloPoll();
       setError(
@@ -221,6 +224,7 @@ const Settings: FC = () => {
       );
       return 'done';
     }
+
     return 'retry';
   }, [clearHelloPoll, loadTransport]);
 
@@ -230,28 +234,32 @@ const Settings: FC = () => {
     setError(null);
     setMessage(null);
     const hadChatId = Boolean(transport?.telegramChatId);
+
     try {
-      const j = await postTelegramTest();
+      const response = await postTelegramTest();
 
       if (hadChatId) {
         setMessage(
-          `Telegram OK — @${j.botUsername ?? '?'} (id ${j.botId ?? '?'})`,
+          `Telegram OK — @${response.botUsername ?? '?'} (id ${response.botId ?? '?'})`,
         );
         return;
       }
 
-      setHelloSession({ botUsername: j.botUsername ?? null });
+      setHelloSession({ botUsername: response.botUsername ?? null });
       setHelloHint(
         'Send the exact message hello (lowercase) to your bot in Telegram.',
       );
       setMessage(
-        `Bot @${j.botUsername ?? '…'} is reachable. Follow the steps below — we check every few seconds for your hello.`,
+        `Bot @${response.botUsername ?? '…'} is reachable. Follow the steps below — we check every few seconds for your hello.`,
       );
       pollAttemptsRef.current = 0;
+
       const first = await pollCaptureHelloOnce();
+
       if (first === 'retry') {
         pollTimerRef.current = setInterval(() => {
-          void (async () => {
+
+          (async () => {
             const again = await pollCaptureHelloOnce();
             if (again !== 'retry' && pollTimerRef.current != null) {
               clearInterval(pollTimerRef.current);
@@ -271,6 +279,7 @@ const Settings: FC = () => {
     setSavingInterests(true);
     setError(null);
     setMessage(null);
+
     try {
       const data = await patchInterest(interestsDraft);
       setInterestRow(data);
@@ -287,6 +296,7 @@ const Settings: FC = () => {
     setSending(true);
     setError(null);
     setMessage(null);
+
     try {
       const j = await postTransportSendMessage('Test message from HSE repos.');
       setMessage(

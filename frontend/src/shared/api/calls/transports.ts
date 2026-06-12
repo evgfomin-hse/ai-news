@@ -41,7 +41,7 @@ export async function postTelegramCaptureMessage(): Promise<{
   response: Response;
   body: TelegramCaptureHelloResponse;
 }> {
-  const response = await apiFetch('/transports/telegram-capture-hello', {
+  const response = await apiFetch('/transports/telegram/capture-user-id', {
     method: 'POST',
   });
 
@@ -57,7 +57,7 @@ export type TelegramTestResponse = {
 };
 
 export async function postTelegramTest(): Promise<TelegramTestResponse> {
-  const response = await apiFetch('/transports/telegram-test', { method: 'POST' });
+  const response = await apiFetch('/transports/telegram/test', { method: 'POST' });
   const json = (await response.json().catch(() => ({}))) as TelegramTestResponse;
 
   if (!response.ok) {
@@ -75,7 +75,7 @@ export type SendMessageResponse = {
 export async function postTransportSendMessage(
   text: string,
 ): Promise<SendMessageResponse> {
-  const response = await apiFetch('/transports/send-message', {
+  const response = await apiFetch('/transports/telegram/send-message', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),

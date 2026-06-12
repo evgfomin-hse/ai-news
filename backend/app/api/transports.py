@@ -95,7 +95,7 @@ def patch_transport(
     return _transport_out(row)
 
 
-@router.post("/telegram-test", response_model=TelegramTestOut)
+@router.post("/telegram/test", response_model=TelegramTestOut)
 def test_telegram_bot(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
@@ -181,7 +181,7 @@ def _telegram_ack_updates(token: str, offset: int) -> None:
         logger.debug("Telegram ack getUpdates failed (non-fatal)", exc_info=True)
 
 
-@router.post("/telegram-capture-hello", response_model=CaptureHelloOut)
+@router.post("/telegram/capture-user-id", response_model=CaptureHelloOut)
 def capture_hello_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
@@ -255,7 +255,7 @@ def capture_hello_message(
     )
 
 
-@router.post("/send-message", response_model=SendMessageOut)
+@router.post("/telegram/send-message", response_model=SendMessageOut)
 def send_telegram_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],

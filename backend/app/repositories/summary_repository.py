@@ -1,9 +1,23 @@
+from collections.abc import Iterable
 from datetime import datetime
+from typing import Protocol
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Score, Summary
+
+
+class ImportedSummary(Protocol):
+    """Structural shape the import path supplies (see services.summary_import.ParsedRow)."""
+
+    body: str
+    created_at: datetime | None
+    score: bool | None
+    score_description: str | None
+
+    @property
+    def has_score(self) -> bool: ...
 
 
 class SummaryRepository:
@@ -83,3 +97,36 @@ class SummaryRepository:
                 created_at=created_at,
             )
         )
+
+    def insert_imported_for_user(
+        self,
+        user_id: int,
+        rows: Iterable[ImportedSummary],
+    ) -> tuple[int, int]:
+        """Create a new Summary per row (and a Score when present) for `user_id`.
+
+        Returns (summaries_inserted, scores_inserted). Does not commit — the caller
+        owns the transaction, so the whole import is all-or-nothing.
+        """
+        summaries_inserted = 0
+        scores_inserted = 0
+        for row in rows:
+            summary = Summary(
+                user_id=user_id,
+                summary=row.body,
+                created_at=row.created_at,
+            )
+            self._session.add(summary)
+            summaries_inserted += 1
+            if row.has_score:
+                # Flush so the autoincrement id is available for the Score FK.
+                self._session.flush()
+                self._session.add(
+                    Score(
+                        summary_id=summary.id,
+                        score=row.score,
+                        description=row.score_description,
+                    )
+                )
+                scores_inserted += 1
+        return summaries_inserted, scores_inserted

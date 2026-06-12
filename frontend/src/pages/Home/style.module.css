@@ -408,6 +408,18 @@
   color: #6b241c;
 }
 
+.note {
+  box-sizing: border-box;
+  max-width: 1120px;
+  margin: 0 auto 16px;
+  padding: 12px 14px;
+  background: color-mix(in oklch, #2b7a4b 8%, var(--paper));
+  border: 1px solid color-mix(in oklch, #2b7a4b 35%, var(--rule));
+  border-radius: 0;
+  font-size: 13.5px;
+  color: #1f5235;
+}
+
 .emptyPanel {
   box-sizing: border-box;
   max-width: 1120px;

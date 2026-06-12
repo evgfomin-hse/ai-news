@@ -9,6 +9,7 @@ import {
   getScore,
   getUserSummaryPage,
   putScore,
+  uploadSummariesCsv,
   type SummaryListItem,
   type UserSummaryResponse,
 } from '../../shared/api';
@@ -142,6 +143,10 @@ const Home: FC = () => {
   const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<Record<string, SummaryFeedback>>({});
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -206,6 +211,32 @@ const Home: FC = () => {
     } finally {
       setExporting(false);
     }
+  };
+
+  const importFromCsv = async (file: File) => {
+    setImporting(true);
+    setImportError(null);
+    setImportMessage(null);
+    try {
+      const result = await uploadSummariesCsv(file);
+      setImportMessage(
+        `Imported ${result.summaries_imported} summaries` +
+          (result.scores_imported ? ` and ${result.scores_imported} scores` : '') +
+          '.',
+      );
+      await fetchSummaryPage(1);
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const onImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so re-selecting the same file fires change again.
+    e.target.value = '';
+    if (file) void importFromCsv(file);
   };
 
   const persistScore = useCallback(
@@ -475,9 +506,30 @@ const Home: FC = () => {
                 >
                   {exporting ? 'EXPORTING…' : 'EXPORT TO CSV →'}
                 </button>
+                <button
+                  type="button"
+                  className={styles.swBtn}
+                  disabled={loading || importing}
+                  onClick={() => importInputRef.current?.click()}
+                >
+                  {importing ? 'IMPORTING…' : '← IMPORT FROM CSV'}
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  hidden
+                  onChange={onImportFileChange}
+                />
               </div>
               {exportError ? (
                 <p className={styles.error} role="alert">{exportError}</p>
+              ) : null}
+              {importError ? (
+                <p className={styles.error} role="alert">{importError}</p>
+              ) : null}
+              {importMessage ? (
+                <p className={styles.note}>{importMessage}</p>
               ) : null}
             </div>
           </div>

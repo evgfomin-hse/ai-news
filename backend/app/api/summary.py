@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
@@ -14,7 +14,12 @@ from app.models import User
 from app.repositories.summary_repository import SummaryRepository
 from app.schemas.summary import GenerateSummaryRequest, UserSummaryResponse
 from app.services.summary_export import build_summaries_csv
+from app.services.summary_import import CsvImportError, parse_summaries_csv
 from app.services.summary_service import SummaryMaintenanceService, SummaryService
+
+# Reject oversized uploads before reading them into memory (the coursework dataset
+# is small; this is a safety bound, not a real limit users will hit).
+MAX_IMPORT_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/summary", tags=["summary"])
 
@@ -85,3 +90,36 @@ def export_summaries_csv(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+@router.post("/import.csv")
+async def import_summaries_csv(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    file: Annotated[UploadFile, File(description="CSV in the export format.")],
+) -> dict[str, int]:
+    """Import summaries (and their scores) from an export-format CSV.
+
+    Each row becomes a brand-new summary owned by the current user; the file's
+    `summary_id` column is ignored. Validation is all-or-nothing: if any row is
+    invalid the request fails with 400 and nothing is written.
+    """
+    raw = await file.read()
+    if len(raw) > MAX_IMPORT_BYTES:
+        raise HTTPException(status_code=413, detail="CSV file is too large.")
+    try:
+        text = raw.decode("utf-8-sig")  # tolerate a UTF-8 BOM from spreadsheet exports
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded.") from exc
+
+    try:
+        rows = parse_summaries_csv(text)
+    except CsvImportError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "invalid_csv", "problems": exc.problems},
+        ) from exc
+
+    summaries, scores = SummaryRepository(db).insert_imported_for_user(user.id, rows)
+    db.commit()
+    return {"summaries_imported": summaries, "scores_imported": scores}

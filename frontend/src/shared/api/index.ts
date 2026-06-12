@@ -26,3 +26,7 @@ export {
 export { getInterest, patchInterest, type InterestView } from './calls/interests';
 export { getScore, putScore, type ScoreView } from './calls/score';
 export { downloadSummariesCsv } from './calls/export';
+export {
+  uploadSummariesCsv,
+  type ImportSummariesResult,
+} from './calls/import';

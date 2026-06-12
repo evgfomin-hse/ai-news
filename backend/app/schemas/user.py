@@ -8,11 +8,6 @@ class UserProfileOut(BaseModel):
     avatarUrl: str | None = None
 
 
-class UserProfilePatch(BaseModel):
-    name: str | None = None
-    picture: str | None = None
-
-
 class LoginBody(BaseModel):
     token: str = Field(..., min_length=1, description="OAuth ID token (JWT) from credential")
 

@@ -57,19 +57,3 @@ def test_get_or_create_keeps_existing_email_when_new_is_blank(db: Session, user:
         subject=user.subject, name="N", picture=None, email="   "
     )
     assert updated.email == original
-
-
-def test_update_profile_no_op_when_all_fields_none(db: Session, user: User):
-    snapshot = (user.name, user.picture)
-    UserRepository(db).update_profile(user, name=None, picture=None)
-    assert (user.name, user.picture) == snapshot
-
-
-def test_update_profile_changes_only_provided_fields(db: Session, user: User):
-    repo = UserRepository(db)
-    repo.update_profile(user, name="New Name", picture=None)
-    db.commit()
-    db.expire_all()
-    refreshed = repo.get_by_id(user.id)
-    assert refreshed.name == "New Name"
-    assert refreshed.picture is None

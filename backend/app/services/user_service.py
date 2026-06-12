@@ -26,15 +26,3 @@ class UserService:
             picture=picture,
             email=email,
         )
-
-    def patch_profile(
-        self,
-        user: User,
-        *,
-        name: str | None,
-        picture: str | None,
-    ) -> User:
-        if name is not None or picture is not None:
-            self._users.update_profile(user, name=name, picture=picture)
-            self._session.commit()
-        return user

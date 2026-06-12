@@ -65,23 +65,3 @@ class UserRepository:
         self._session.commit()
         self._session.refresh(user)
         return user
-
-    def update_profile(
-        self,
-        user: User,
-        *,
-        name: str | None,
-        picture: str | None,
-    ) -> User:
-        changed = False
-        if name is not None:
-            user.name = name
-            changed = True
-        if picture is not None:
-            user.picture = picture
-            changed = True
-        if changed:
-            self._session.add(user)
-            self._session.flush()
-            self._session.refresh(user)
-        return user

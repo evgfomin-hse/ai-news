@@ -30,6 +30,14 @@ export async function getUserSummaryPage(
   return (await response.json()) as UserSummaryResponse;
 }
 
+export async function deleteUserSummary(id: string): Promise<void> {
+  const response = await apiFetch(`/summary/${id}`, { method: 'DELETE' });
+  if (!response.ok) {
+    const j = (await response.json().catch(() => ({}))) as { detail?: unknown };
+    throw new Error(parseFastApiDetail(j, 'Could not delete summary'));
+  }
+}
+
 export async function postGenerateUserSummary(): Promise<void> {
   const response = await apiFetch('/summary/generate', { method: 'POST' });
 

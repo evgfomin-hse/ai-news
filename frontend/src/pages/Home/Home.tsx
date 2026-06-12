@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
+  deleteUserSummary,
   downloadSummariesCsv,
   getScore,
   getUserSummaryPage,
@@ -156,6 +157,21 @@ const Home: FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const handleDeleteSummary = useCallback(
+    async (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      try {
+        await deleteUserSummary(id);
+        const currentPage = summaryPayload?.page ?? 1;
+        const isLastOnPage = (summaryPayload?.items.length ?? 0) === 1 && currentPage > 1;
+        fetchSummaryPage(isLastOnPage ? currentPage - 1 : currentPage);
+      } catch {
+        // deletion failed silently; page stays unchanged
+      }
+    },
+    [fetchSummaryPage, summaryPayload],
+  );
 
   useEffect(() => {
     fetchSummaryPage(1);
@@ -387,6 +403,13 @@ const Home: FC = () => {
                     <div className={styles.rowMeta}>
                       <span>SUMMARY</span>
                       ROW {it.id}
+                      <button
+                        className={styles.rowDel}
+                        onClick={(e) => handleDeleteSummary(e, it.id)}
+                        aria-label="Delete summary"
+                      >
+                        × DEL
+                      </button>
                     </div>
                   </div>
                 ))

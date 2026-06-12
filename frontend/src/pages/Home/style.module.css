@@ -258,6 +258,14 @@
   .rowMeta {
     text-align: left;
   }
+
+}
+
+@media (min-width: 901px) {
+  .rowDel {
+    margin-top: 10px;
+    margin-left: auto;
+  }
 }
 
 .rowMeta span {
@@ -265,6 +273,24 @@
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
+}
+
+.rowDel {
+  display: block;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.rowDel:hover {
+  color: #c00;
+  border-color: #c00;
 }
 
 .homeFoot {

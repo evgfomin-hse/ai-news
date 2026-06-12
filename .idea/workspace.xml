@@ -5,22 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="20552074-cac4-4e53-b3e5-90eb896110c8" name="Changes" comment="fix">
-      <change afterPath="$PROJECT_DIR$/backend/tests/api/test_auth_login_api.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/api/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/api/auth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/core/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/models/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/models/user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/repositories/user_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/repositories/user_repository.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/schemas/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/schemas/user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/services/user_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/services/user_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_auth_google_api.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_score_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/api/test_score_api.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/api/test_summary_export_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/api/test_summary_export_api.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/conftest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_score_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_score_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_maintenance.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_summary_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_summary_repository.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_user_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_user_repository.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/tests/integration/test_user_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/integration/test_user_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,7 +13,8 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="5133" />
+    <option name="cachedIndexableFilesCount" value="5131" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -39,12 +25,12 @@
     &quot;assignee&quot;: &quot;evgfomin&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/evgfomin-hse/ai-news",
-    "accountId": "3595dc50-38f0-4a69-9dcc-b09904cf97e9"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/evgfomin-hse/ai-news&quot;,
+    &quot;accountId&quot;: &quot;3595dc50-38f0-4a69-9dcc-b09904cf97e9&quot;
   }
-}]]></component>
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
@@ -58,28 +44,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "JavaScript Debug.127.0.0.1:8000.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "#2 on stable",
-    "javascript.preferred.runtime.type.id": "node",
-    "last_opened_file_path": "C:/Users/evgen/repos/ai-news-hse",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "C:\\Users\\evgen\\repos\\ai-news-hse\\frontend\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JavaScript Debug.127.0.0.1:8000.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;#2 on stable&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/evgen/repos/ai-news-hse&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\evgen\\repos\\ai-news-hse\\frontend\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecapSpentCounter">
     <option name="endsOfQuotaMs" value="1783098019508" />
   </component>

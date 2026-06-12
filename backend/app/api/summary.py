@@ -49,6 +49,22 @@ def generate_summary(
     return {"ok": True, "rows_inserted": n}
 
 
+@router.delete("/{summary_id}", status_code=204)
+def delete_summary(
+    summary_id: int,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Delete a single summary row owned by the current user."""
+    from fastapi import HTTPException
+
+    repo = SummaryRepository(db)
+    deleted = repo.delete_for_user(summary_id, user_id=user.id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Summary not found")
+    db.commit()
+
+
 @router.get("/export.csv")
 def export_summaries_csv(
     user: Annotated[User, Depends(get_current_user)],

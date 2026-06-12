@@ -18,6 +18,9 @@ class ScoreSignal:
     description: str | None
 
 
+_CONTENT_TRUNCATE = 1000
+
+
 @dataclass(frozen=True)
 class NewsItem:
     """The minimal article data the LLM needs."""
@@ -25,6 +28,7 @@ class NewsItem:
     title: str
     description: str | None
     url: str | None
+    content: str | None = None
 
 
 def score_signals_from_rows(rows: list[Score]) -> list[ScoreSignal]:
@@ -36,7 +40,11 @@ def score_signals_from_rows(rows: list[Score]) -> list[ScoreSignal]:
 
 
 def news_items_from_rows(rows: list[NewsArticle]) -> list[NewsItem]:
-    return [NewsItem(title=r.title, description=r.description, url=r.url) for r in rows]
+    return [
+        NewsItem(title=r.title, description=r.description, url=r.url, content=getattr(r, "content", None))
+        for r in rows
+        if getattr(r, "content", None)
+    ]
 
 
 _SYSTEM_RULES = """\
@@ -46,8 +54,9 @@ Rules:
 - Output Markdown only, no preamble, no closing remarks.
 - Open with a single H2 heading: `## Daily summary — <today>` (use the date
   placeholder you receive).
-- Then 4-8 bullets, each one sentence, picking the most relevant items from
-  "Today's news" for THIS user.
+- Then 4-8 bullets. Each bullet must be 1-2 sentences that summarize WHAT THE
+  ARTICLE ACTUALLY SAYS — drawn from its content, not its title. Do not simply
+  restate the headline; explain the key finding, decision, or development.
 - EVERY bullet MUST end with a parenthesized markdown link to its source article's
   URL, e.g. `([source](https://example.com/article))`. This is mandatory — never
   emit a bullet without a source link.
@@ -98,6 +107,8 @@ def build_summary_prompt(
             head = f"- {n.title}"
             if n.url:
                 head += f" [{n.url}]"
+            if n.content:
+                head += f"\n  {n.content[:_CONTENT_TRUNCATE]}"
             lines.append(head)
         sections.append("Today's news (raw):\n" + "\n".join(lines))
     else:

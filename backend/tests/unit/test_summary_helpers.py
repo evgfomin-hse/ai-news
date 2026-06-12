@@ -8,21 +8,21 @@ from datetime import UTC, datetime
 from app.services.summary_service import _previous_day_window, _users_with_interests
 
 
-def test_previous_day_window_returns_yesterday_full_utc_day_and_iso_label():
+def test_previous_day_window_returns_two_days_ago_full_utc_day_and_iso_label():
     now = datetime(2026, 6, 6, 3, 0, 0, tzinfo=UTC)
     start, end, label = _previous_day_window(now)
 
-    assert start == datetime(2026, 6, 5, 0, 0, 0, tzinfo=UTC)
-    assert end == datetime(2026, 6, 5, 23, 59, 59, tzinfo=UTC)
-    assert label == "2026-06-05"
+    assert start == datetime(2026, 6, 4, 0, 0, 0, tzinfo=UTC)
+    assert end == datetime(2026, 6, 4, 23, 59, 59, tzinfo=UTC)
+    assert label == "2026-06-04"
 
 
 def test_previous_day_window_handles_first_of_month():
     now = datetime(2026, 7, 1, 3, 0, 0, tzinfo=UTC)
     start, end, label = _previous_day_window(now)
-    assert start == datetime(2026, 6, 30, 0, 0, 0, tzinfo=UTC)
-    assert end == datetime(2026, 6, 30, 23, 59, 59, tzinfo=UTC)
-    assert label == "2026-06-30"
+    assert start == datetime(2026, 6, 29, 0, 0, 0, tzinfo=UTC)
+    assert end == datetime(2026, 6, 29, 23, 59, 59, tzinfo=UTC)
+    assert label == "2026-06-29"
 
 
 @dataclass

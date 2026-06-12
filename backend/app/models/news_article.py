@@ -23,3 +23,4 @@ class NewsArticle(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     url: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -192,9 +192,9 @@ def test_date_label_passed_to_prompt_is_yesterday(db: Session, user: User):
     )
     svc.run_bulk_for_all_users()
 
-    expected_yesterday = datetime.now(UTC).date() - timedelta(days=1)
+    expected_two_days_ago = datetime.now(UTC).date() - timedelta(days=2)
     assert any(
-        f"Today's date: {expected_yesterday.isoformat()}" in p for p in summarizer.seen_prompts
+        f"Today's date: {expected_two_days_ago.isoformat()}" in p for p in summarizer.seen_prompts
     )
 
 
@@ -258,7 +258,7 @@ def test_full_happy_path_news_flows_through_filter_into_prompt(db: Session, user
 
     # Pre-populate yesterday's news so we don't need GDELT to actually fetch.
     y_start = (datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-               - timedelta(days=1)).replace(tzinfo=None)
+               - timedelta(days=2)).replace(tzinfo=None)
     for i in range(3):
         db.add(
             NewsArticle(

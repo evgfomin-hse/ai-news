@@ -59,6 +59,16 @@ class SummaryRepository:
             ).all()
         )
 
+    def delete_for_user(self, summary_id: int, *, user_id: int) -> bool:
+        """Delete a summary owned by user_id. Returns True if a row was deleted."""
+        row = self._session.scalar(
+            select(Summary).where(Summary.id == summary_id, Summary.user_id == user_id)
+        )
+        if row is None:
+            return False
+        self._session.delete(row)
+        return True
+
     def append_row(
         self,
         *,

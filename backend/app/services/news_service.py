@@ -8,10 +8,13 @@ articles, and store them as `NewsArticle` rows.
 from __future__ import annotations
 
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any
 
 import requests
+import trafilatura
 from sqlalchemy.orm import Session
 
 from app.core.time import naive_utc_now
@@ -22,6 +25,53 @@ logger = logging.getLogger(__name__)
 
 NEWSAPI_EVERYTHING_URL = "https://newsapi.org/v2/everything"
 NEWSAPI_SOURCE_TAG = "newsapi:everything"
+
+
+_SCRAPE_TIMEOUT = 10
+_SCRAPE_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; news-digest-bot/1.0)"}
+
+
+def _scrape_content(url: str) -> str | None:
+    try:
+        resp = requests.get(url, timeout=_SCRAPE_TIMEOUT, headers=_SCRAPE_HEADERS)
+        resp.raise_for_status()
+        return trafilatura.extract(resp.text)
+    except Exception:
+        return None
+
+
+_PROGRESS_LOG_INTERVAL = 30  # seconds
+
+
+def _enrich_with_content(articles: list, max_workers: int = 10) -> None:
+    """Fetch full article text for each article in parallel; sets article.content in place."""
+    with_urls = [(i, a) for i, a in enumerate(articles) if a.url]
+    if not with_urls:
+        return
+    total = len(with_urls)
+    completed = 0
+    last_log = time.monotonic()
+    logger.info("Content scraping: starting %d URLs (max_workers=%d)", total, max_workers)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_scrape_content, a.url): a for _, a in with_urls}
+        for future in as_completed(futures):
+            article = futures[future]
+            try:
+                article.content = future.result()
+            except Exception:
+                article.content = None
+            completed += 1
+            now = time.monotonic()
+            if now - last_log >= _PROGRESS_LOG_INTERVAL:
+                logger.info(
+                    "Content scraping progress: %d/%d URLs done (last: %s)",
+                    completed,
+                    total,
+                    article.url,
+                )
+                last_log = now
+    scraped = sum(1 for _, a in with_urls if getattr(a, "content", None))
+    logger.info("Content scraping: %d/%d articles enriched", scraped, total)
 
 
 class NewsFetchError(RuntimeError):
@@ -121,6 +171,7 @@ class NewsApiFetcherService:
         if not accumulated:
             return 0
 
+        _enrich_with_content(accumulated[: self._max_articles])
         inserted = self._articles.insert_many(accumulated[: self._max_articles])
         self._session.commit()
         logger.info("NewsAPI: stored %d articles", inserted)

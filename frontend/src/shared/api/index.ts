@@ -6,6 +6,7 @@ export {
   type SessionUser as SessionUserJson,
 } from './calls/auth';
 export {
+  deleteUserSummary,
   getUserSummaryPage,
   postGenerateUserSummary,
   type SummaryListItem,

@@ -16,9 +16,9 @@ from app.repositories.summary_repository import SummaryRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.summary import SummaryItem, UserSummaryResponse
 from app.services.candidate_filter import PerUserCandidateFilter
-from app.services.news_service import NewsApiFetcherService, NewsFetchError
 from app.services.keyword_extractor import KeywordExtractor
 from app.services.llm_service import LLMError, LLMSummarizer
+from app.services.news_service import NewsApiFetcherService, NewsFetchError
 from app.services.summary_prompt import (
     build_summary_prompt,
     news_items_from_rows,
@@ -71,7 +71,7 @@ def _previous_day_window(now: datetime) -> tuple[datetime, datetime, str]:
     `now` is expected to be timezone-aware UTC; we use the UTC-day calendar.
     """
     today_midnight = datetime(now.year, now.month, now.day, tzinfo=UTC)
-    start = today_midnight - timedelta(days=1)
+    start = today_midnight - timedelta(days=2)
     end = start + timedelta(hours=23, minutes=59, seconds=59)
     return start, end, start.strftime("%Y-%m-%d")
 
@@ -277,6 +277,7 @@ def _generate_one_for_user(
         recent_scores=score_signals_from_rows(recent_scores),
         news=news_items_from_rows(news_rows),
     )
+    logger.info("Summary prompt for user_id=%s:\n%s", user_id, prompt)
     try:
         body = summarizer.generate(prompt=prompt)
     except LLMError as exc:
@@ -486,6 +487,7 @@ class SummaryMaintenanceService:
                 recent_scores=score_signals_from_rows(recent_scores),
                 news=news_items_from_rows(filtered),
             )
+            logger.info("Summary prompt for user_id=%s:\n%s", user_id, prompt)
             if self._summarizer is None:
                 stats["digest_failed"] += 1
                 continue

@@ -21,8 +21,6 @@ def _issue_app_token(user_id: str, name: str, picture: str | None) -> str:
     now = datetime.now(UTC)
     payload = {
         "sub": user_id,
-        "name": name,
-        "picture": picture,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(seconds=settings.session_ttl_seconds)).timestamp()),
     }

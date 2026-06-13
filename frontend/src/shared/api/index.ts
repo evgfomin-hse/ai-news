@@ -7,6 +7,8 @@ export {
 } from './calls/auth';
 export {
   deleteUserSummary,
+  getAllTimeStats,
+  getTodayStats,
   getUserSummaryPage,
   postGenerateUserSummary,
   type SummaryListItem,

@@ -6,7 +6,9 @@ import remarkGfm from 'remark-gfm';
 import {
   deleteUserSummary,
   downloadSummariesCsv,
+  getAllTimeStats,
   getScore,
+  getTodayStats,
   getUserSummaryPage,
   putScore,
   uploadSummariesCsv,
@@ -146,6 +148,8 @@ const Home: FC = () => {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [todayStories, setTodayStories] = useState<number | null>(null);
+  const [allTimeStories, setAllTimeStories] = useState<number | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
   const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,6 +185,28 @@ const Home: FC = () => {
   useEffect(() => {
     fetchSummaryPage(1);
   }, [fetchSummaryPage]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const stats = await getTodayStats();
+        setTodayStories(stats.stories_today);
+      } catch (e) {
+        // Failed to fetch stats, will show null
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const stats = await getAllTimeStats();
+        setAllTimeStories(stats.stories_all_time);
+      } catch (e) {
+        // Failed to fetch stats, will show null
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!detailItem) return;
@@ -379,12 +405,12 @@ const Home: FC = () => {
         </div>
         <div className={styles.mastCell}>
           <div className={styles.kvLabel}>
-            TODAY<u>{total} stories</u>
+            TODAY<u>{todayStories ?? (loading ? '…' : 0)} stories</u>
           </div>
         </div>
         <div className={styles.mastCell}>
           <div className={styles.kvLabel}>
-            ON PAGE<u>{summaryPayload?.items.length ?? (loading ? '…' : 0)}</u>
+            ALL TIME<u>{allTimeStories ?? (loading ? '…' : 0)}</u>
           </div>
         </div>
         <div className={styles.mastCell}>

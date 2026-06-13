@@ -94,3 +94,15 @@ async def import_summaries_csv(
     summaries, scores = SummaryRepository(db).insert_imported_for_user(user.id, rows)
     db.commit()
     return {"summaries_imported": summaries, "scores_imported": scores}
+
+
+@router.get("/stats/today")
+def get_today_stats(db: Annotated[Session, Depends(get_db)]) -> dict[str, int]:
+    repo = SummaryRepository(db)
+    return {"stories_today": repo.count_created_today()}
+
+
+@router.get("/stats/all-time")
+def get_all_time_stats(db: Annotated[Session, Depends(get_db)]) -> dict[str, int]:
+    repo = SummaryRepository(db)
+    return {"stories_all_time": repo.count_all()}

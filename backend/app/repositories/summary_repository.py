@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Protocol
 
 from sqlalchemy import func, select
@@ -45,6 +45,24 @@ class SummaryRepository:
         return int(
             self._session.scalar(
                 select(func.count()).select_from(Summary).where(Summary.user_id == user_id)
+            )
+            or 0
+        )
+
+    def count_created_today(self) -> int:
+        now = datetime.now(UTC)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+        return int(
+            self._session.scalar(
+                select(func.count()).select_from(Summary).where(Summary.created_at >= today_start)
+            )
+            or 0
+        )
+
+    def count_all(self) -> int:
+        return int(
+            self._session.scalar(
+                select(func.count()).select_from(Summary)
             )
             or 0
         )

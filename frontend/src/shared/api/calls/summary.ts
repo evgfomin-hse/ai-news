@@ -46,3 +46,25 @@ export async function postGenerateUserSummary(): Promise<void> {
     throw new Error(parseFastApiDetail(j, 'Could not generate summary'));
   }
 }
+
+export async function getTodayStats(): Promise<{ stories_today: number }> {
+  const response = await apiFetch('/summary/stats/today');
+
+  if (!response.ok) {
+    const json = (await response.json().catch(() => ({}))) as { detail?: unknown };
+    throw new Error(parseFastApiDetail(json, 'Could not load stats'));
+  }
+
+  return (await response.json()) as { stories_today: number };
+}
+
+export async function getAllTimeStats(): Promise<{ stories_all_time: number }> {
+  const response = await apiFetch('/summary/stats/all-time');
+
+  if (!response.ok) {
+    const json = (await response.json().catch(() => ({}))) as { detail?: unknown };
+    throw new Error(parseFastApiDetail(json, 'Could not load stats'));
+  }
+
+  return (await response.json()) as { stories_all_time: number };
+}

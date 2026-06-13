@@ -13,7 +13,7 @@ from app.api.dependencies import (
 from app.core.time import naive_utc_now
 from app.models import Transport, User
 from app.schemas.transport import (
-    CaptureHelloOut,
+    CaptureOut,
     SendMessageBody,
     SendMessageOut,
     TelegramTestOut,
@@ -141,8 +141,8 @@ def test_telegram_bot(
     )
 
 
-def _pick_hello_chat_from_updates(updates: list) -> tuple[int, str] | None:
-    """Returns (update_id, chat_id_str) for the best matching hello message, or None."""
+def _pick_chat_from_updates(updates: list) -> tuple[int, str] | None:
+    """Returns (update_id, chat_id_str) for the best matching message, or None."""
     candidates: list[tuple[int, str, str | None]] = []
     for u in updates:
         uid = u.get("update_id")
@@ -150,9 +150,6 @@ def _pick_hello_chat_from_updates(updates: list) -> tuple[int, str] | None:
             continue
         msg = u.get("message") or u.get("edited_message")
         if not isinstance(msg, dict):
-            continue
-        text = (msg.get("text") or "").strip().lower()
-        if text != "hello":
             continue
         chat = msg.get("chat")
         if not isinstance(chat, dict):
@@ -181,11 +178,11 @@ def _telegram_ack_updates(token: str, offset: int) -> None:
         logger.debug("Telegram ack getUpdates failed (non-fatal)", exc_info=True)
 
 
-@router.post("/telegram/capture-user-id", response_model=CaptureHelloOut)
-def capture_hello_message(
+@router.post("/telegram/capture-user-id", response_model=CaptureOut)
+def capture_message(
     user: Annotated[User, Depends(get_current_user)],
     transports: Annotated[TransportService, Depends(get_transport_service)],
-) -> CaptureHelloOut:
+) -> CaptureOut:
     row = transports.get_active_for_user(user.id)
     token = telegram_token_from_row(row)
     if not token:
@@ -195,7 +192,7 @@ def capture_hello_message(
         )
     existing = telegram_chat_id_from_row(row)
     if existing:
-        return CaptureHelloOut(linked=True, chatId=existing, hint=None)
+        return CaptureOut(linked=True, chatId=existing, hint=None)
 
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     try:
@@ -229,9 +226,9 @@ def capture_hello_message(
     updates = payload.get("result")
     if not isinstance(updates, list):
         updates = []
-    picked = _pick_hello_chat_from_updates(updates)
+    picked = _pick_chat_from_updates(updates)
     if picked is None:
-        return CaptureHelloOut(
+        return CaptureOut(
             linked=False,
             chatId=None,
             hint=(
@@ -248,7 +245,7 @@ def capture_hello_message(
     row.updated_at = naive_utc_now()
     transports.persist_transport(row)
     _telegram_ack_updates(token, update_id + 1)
-    return CaptureHelloOut(
+    return CaptureOut(
         linked=True,
         chatId=chat_id_str,
         hint=None,
@@ -278,8 +275,6 @@ def send_telegram_message(
     try:
         mid = sender.send(token=token, chat_id=chat_id, text=body.text)
     except TelegramSendError as exc:
-        # network / non_json → 502 (we couldn't reach Telegram or parse a response).
-        # telegram_error / missing_message_id → 400 (Telegram rejected the call).
         status = 502 if exc.kind in ("network", "non_json") else 400
         raise HTTPException(status_code=status, detail=exc.message) from exc
     return SendMessageOut(ok=True, telegramMessageId=mid)

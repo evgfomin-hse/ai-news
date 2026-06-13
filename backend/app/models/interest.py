@@ -7,8 +7,6 @@ from app.models.base import Base
 
 
 class Interest(Base):
-    """Coursework `public.interests` — free-text interests per user."""
-
     __tablename__ = "interests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

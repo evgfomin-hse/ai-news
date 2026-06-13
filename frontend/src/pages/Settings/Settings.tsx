@@ -1,11 +1,6 @@
-import type { FC, ReactNode } from 'react';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import { Link } from 'react-router-dom';
+import type { FC, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   getInterest,
   getTransport,
@@ -17,9 +12,9 @@ import {
   postTransportSendMessage,
   type InterestView,
   type TransportView,
-} from '../../shared/api';
-import { useAuth } from '../../features/Auth/AuthProvider';
-import styles from './style.module.css';
+} from "../../shared/api";
+import { useAuth } from "../../features/Auth/AuthProvider";
+import styles from "./style.module.css";
 
 function Panel({
   lab,
@@ -58,9 +53,9 @@ const Settings: FC = () => {
   const { user } = useAuth();
   const [transport, setTransport] = useState<TransportView | null>(null);
   const [interestRow, setInterestRow] = useState<InterestView | null>(null);
-  const [interestsDraft, setInterestsDraft] = useState('');
-  const [tokenInput, setTokenInput] = useState('');
-  const [chatInput, setChatInput] = useState('');
+  const [interestsDraft, setInterestsDraft] = useState("");
+  const [tokenInput, setTokenInput] = useState("");
+  const [chatInput, setChatInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingInterests, setSavingInterests] = useState(false);
@@ -84,18 +79,18 @@ const Settings: FC = () => {
       return;
     }
     setTransport(data);
-    setChatInput(data.telegramChatId ?? '');
+    setChatInput(data.telegramChatId ?? "");
   }, []);
 
   const loadInterests = useCallback(async () => {
     const data = await getInterest();
     if (!data) {
       setInterestRow(null);
-      setInterestsDraft('');
+      setInterestsDraft("");
       return;
     }
     setInterestRow(data);
-    setInterestsDraft(data.interests ?? '');
+    setInterestsDraft(data.interests ?? "");
   }, []);
 
   const clearHelloPoll = useCallback(() => {
@@ -138,10 +133,10 @@ const Settings: FC = () => {
 
     try {
       await persistTransportPatch({ telegramBotToken: tokenInput });
-      setTokenInput('');
-      setMessage('Telegram bot token saved.');
+      setTokenInput("");
+      setMessage("Telegram bot token saved.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -155,9 +150,9 @@ const Settings: FC = () => {
 
     try {
       await persistTransportPatch({ telegramChatId: chatInput.trim() });
-      setMessage('Chat id saved.');
+      setMessage("Chat id saved.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -165,29 +160,31 @@ const Settings: FC = () => {
 
   const clearToken = async () => {
     clearHelloPoll();
-    setTokenInput('');
+    setTokenInput("");
     setSaving(true);
     setError(null);
     setMessage(null);
 
     try {
-      await persistTransportPatch({ telegramBotToken: '' });
-      setChatInput('');
-      setMessage('Token removed (chat id cleared too).');
+      await persistTransportPatch({ telegramBotToken: "" });
+      setChatInput("");
+      setMessage("Token removed (chat id cleared too).");
     } catch {
-      setError('Could not clear token');
+      setError("Could not clear token");
     } finally {
       setSaving(false);
     }
   };
 
-  const pollCaptureHelloOnce = useCallback(async (): Promise<'retry' | 'done'> => {
+  const pollCaptureHelloOnce = useCallback(async (): Promise<
+    "retry" | "done"
+  > => {
     const { response, body } = await postTelegramCaptureMessage();
 
     if (response.status === 409 || !response.ok) {
       clearHelloPoll();
       setError(parseFastApiDetail(body));
-      return 'done';
+      return "done";
     }
 
     if (body.linked && body.chatId) {
@@ -211,21 +208,21 @@ const Settings: FC = () => {
       setMessage(`Linked your chat automatically. Chat id: ${body.chatId}`);
       setError(null);
       void loadTransport();
-      return 'done';
+      return "done";
     }
 
-    setHelloHint(body.hint ?? 'Waiting for hello…');
+    setHelloHint(body.hint ?? "Waiting for hello…");
     pollAttemptsRef.current += 1;
 
     if (pollAttemptsRef.current >= HELLO_MAX_POLLS) {
       clearHelloPoll();
       setError(
-        'Timed out waiting for a hello message. Try Test bot again or paste chat id manually.',
+        "Timed out waiting for a hello message. Try Test bot again or paste chat id manually.",
       );
-      return 'done';
+      return "done";
     }
 
-    return 'retry';
+    return "retry";
   }, [clearHelloPoll, loadTransport]);
 
   const testTelegram = async () => {
@@ -240,28 +237,27 @@ const Settings: FC = () => {
 
       if (hadChatId) {
         setMessage(
-          `Telegram OK — @${response.botUsername ?? '?'} (id ${response.botId ?? '?'})`,
+          `Telegram OK — @${response.botUsername ?? "?"} (id ${response.botId ?? "?"})`,
         );
         return;
       }
 
       setHelloSession({ botUsername: response.botUsername ?? null });
       setHelloHint(
-        'Send the exact message hello (lowercase) to your bot in Telegram.',
+        "Send the exact message hello (lowercase) to your bot in Telegram.",
       );
       setMessage(
-        `Bot @${response.botUsername ?? '…'} is reachable. Follow the steps below — we check every few seconds for your hello.`,
+        `Bot @${response.botUsername ?? "…"} is reachable. Follow the steps below — we check every few seconds for your hello.`,
       );
       pollAttemptsRef.current = 0;
 
       const first = await pollCaptureHelloOnce();
 
-      if (first === 'retry') {
+      if (first === "retry") {
         pollTimerRef.current = setInterval(() => {
-
           (async () => {
             const again = await pollCaptureHelloOnce();
-            if (again !== 'retry' && pollTimerRef.current != null) {
+            if (again !== "retry" && pollTimerRef.current != null) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
             }
@@ -269,7 +265,7 @@ const Settings: FC = () => {
         }, HELLO_POLL_MS);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Test failed');
+      setError(e instanceof Error ? e.message : "Test failed");
     } finally {
       setTesting(false);
     }
@@ -283,10 +279,10 @@ const Settings: FC = () => {
     try {
       const data = await patchInterest(interestsDraft);
       setInterestRow(data);
-      setInterestsDraft(data.interests ?? '');
-      setMessage('Interests saved.');
+      setInterestsDraft(data.interests ?? "");
+      setMessage("Interests saved.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSavingInterests(false);
     }
@@ -298,19 +294,21 @@ const Settings: FC = () => {
     setMessage(null);
 
     try {
-      const j = await postTransportSendMessage('Test message from HSE repos.');
+      const j = await postTransportSendMessage(
+        "Hey, looks like you configured telegram integration and it works! Now you will recieve all generation in this chat",
+      );
       setMessage(
-        `Message sent (Telegram message id ${j.telegramMessageId ?? '?'})`,
+        `Message sent (Telegram message id ${j.telegramMessageId ?? "?"})`,
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Send failed');
+      setError(e instanceof Error ? e.message : "Send failed");
     } finally {
       setSending(false);
     }
   };
 
   const chatDisplay = transport?.telegramChatId
-    ? transport.telegramChatId.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    ? transport.telegramChatId.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
     : null;
 
   return (
@@ -321,15 +319,17 @@ const Settings: FC = () => {
             ← Back to home
           </Link>
           <h1 className={styles.title}>Settings</h1>
-          <p className={styles.lede}>How your letter gets written and where it lands.</p>
+          <p className={styles.lede}>
+            How your letter gets written and where it lands.
+          </p>
 
           <Panel lab="Profile" title="Who's reading">
             {loading ? (
               <p className={styles.dim}>Loading…</p>
             ) : (
               <>
-                <Row k="Display" v={user?.username ?? '—'} />
-                <Row k="Email" v={user?.email ?? '—'} />
+                <Row k="Display" v={user?.username ?? "—"} />
+                <Row k="Email" v={user?.email ?? "—"} />
               </>
             )}
           </Panel>
@@ -338,7 +338,7 @@ const Settings: FC = () => {
             lab={
               interestRow?.interestId != null
                 ? `Interests · row ${interestRow.interestId}`
-                : 'Interests · courseworks.interests'
+                : "Interests · courseworks.interests"
             }
             title={
               <>
@@ -364,16 +364,18 @@ const Settings: FC = () => {
                     className={`${styles.btn} ${styles.btnPrime}`}
                     disabled={
                       savingInterests ||
-                      interestsDraft === (interestRow?.interests ?? '')
+                      interestsDraft === (interestRow?.interests ?? "")
                     }
                     onClick={() => void saveInterests()}
                   >
-                    {savingInterests ? 'Saving…' : 'Save interests'}
+                    {savingInterests ? "Saving…" : "Save interests"}
                   </button>
                   <button
                     type="button"
                     className={`${styles.btn} ${styles.btnGhost}`}
-                    onClick={() => setInterestsDraft(interestRow?.interests ?? '')}
+                    onClick={() =>
+                      setInterestsDraft(interestRow?.interests ?? "")
+                    }
                   >
                     Cancel
                   </button>
@@ -393,10 +395,12 @@ const Settings: FC = () => {
           >
             {helloSession ? (
               <div className={styles.callout}>
-                <strong className={styles.calloutTitle}>Link your Telegram chat</strong>
+                <strong className={styles.calloutTitle}>
+                  Link your Telegram chat
+                </strong>
                 <ol className={styles.calloutList}>
                   <li>
-                    Open Telegram and find your bot{' '}
+                    Open Telegram and find your bot{" "}
                     {helloSession.botUsername ? (
                       <strong>@{helloSession.botUsername}</strong>
                     ) : (
@@ -409,8 +413,14 @@ const Settings: FC = () => {
                   </li>
                   <li>Keep this page open — we poll for it.</li>
                 </ol>
-                {helloHint ? <p className={styles.hintLine}>{helloHint}</p> : null}
-                <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={clearHelloPoll}>
+                {helloHint ? (
+                  <p className={styles.hintLine}>{helloHint}</p>
+                ) : null}
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                  onClick={clearHelloPoll}
+                >
                   Cancel linking
                 </button>
               </div>
@@ -425,15 +435,15 @@ const Settings: FC = () => {
                   Bot token on file
                   {chatDisplay ? (
                     <>
-                      {' '}
+                      {" "}
                       · chat <b>{chatDisplay}</b>
                     </>
                   ) : (
-                    ' · chat not set'
+                    " · chat not set"
                   )}
                   {transport?.transportId != null ? (
                     <span className={styles.dim}>
-                      {' '}
+                      {" "}
                       · transport id {transport.transportId}
                     </span>
                   ) : null}
@@ -457,7 +467,7 @@ const Settings: FC = () => {
                     disabled={saving || !tokenInput.trim()}
                     onClick={() => void saveToken()}
                   >
-                    {saving ? 'Saving…' : 'Save token'}
+                    {saving ? "Saving…" : "Save token"}
                   </button>
                   <button
                     type="button"
@@ -469,7 +479,7 @@ const Settings: FC = () => {
                     }
                     onClick={() => void testTelegram()}
                   >
-                    {testing ? 'Testing…' : 'Test bot'}
+                    {testing ? "Testing…" : "Test bot"}
                   </button>
                   <button
                     type="button"
@@ -484,7 +494,7 @@ const Settings: FC = () => {
                   <span className={styles.statusDot} aria-hidden />
                   <span>
                     <span className={styles.statusStrong}>Ready</span>
-                    {' · '}
+                    {" · "}
                     <span className={styles.dim}>Telegram transport</span>
                   </span>
                 </div>
@@ -493,8 +503,8 @@ const Settings: FC = () => {
                   <div className={styles.lab}>Chat id</div>
                   <h3 className={styles.cardTitle}>Link your chat</h3>
                   <p className={styles.hint}>
-                    Paste your chat id manually, or use Test bot without a chat to link automatically
-                    after you send hello.
+                    Paste your chat id manually, or use Test bot without a chat
+                    to link automatically after you send hello.
                   </p>
                   <div className={styles.kv}>
                     <b className={styles.kvKey}>Chat id</b>
@@ -512,10 +522,13 @@ const Settings: FC = () => {
                     <button
                       type="button"
                       className={`${styles.btn} ${styles.btnPrime}`}
-                      disabled={saving || chatInput.trim() === (transport?.telegramChatId ?? '')}
+                      disabled={
+                        saving ||
+                        chatInput.trim() === (transport?.telegramChatId ?? "")
+                      }
                       onClick={() => void saveChatId()}
                     >
-                      {saving ? 'Saving…' : 'Save chat id'}
+                      {saving ? "Saving…" : "Save chat id"}
                     </button>
                   </div>
                 </div>
@@ -524,7 +537,8 @@ const Settings: FC = () => {
                   <div className={styles.lab}>Send</div>
                   <h3 className={styles.cardTitle}>Send a test</h3>
                   <p className={styles.hint}>
-                    Drops a friendly message into your Telegram so you can see how delivery feels.
+                    Drops a friendly message into your Telegram so you can see
+                    how delivery feels.
                   </p>
                   <div className={styles.btnRow}>
                     <button
@@ -537,7 +551,7 @@ const Settings: FC = () => {
                       }
                       onClick={() => void sendTestMessage()}
                     >
-                      {sending ? 'Sending…' : 'Send test message to my chat'}
+                      {sending ? "Sending…" : "Send test message to my chat"}
                     </button>
                   </div>
                 </div>
@@ -546,7 +560,11 @@ const Settings: FC = () => {
                   <pre className={styles.messageBox}>{message}</pre>
                 ) : null}
                 {error ? (
-                  <pre className={`${styles.messageBox} ${styles.messageBoxError}`}>{error}</pre>
+                  <pre
+                    className={`${styles.messageBox} ${styles.messageBoxError}`}
+                  >
+                    {error}
+                  </pre>
                 ) : null}
               </>
             )}

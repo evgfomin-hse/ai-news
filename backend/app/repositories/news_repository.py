@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app.models import NewsArticle
@@ -30,8 +30,6 @@ class NewsRepository:
         )
 
     def count_since(self, since: datetime) -> int:
-        from sqlalchemy import func
-
         return int(
             self._session.scalar(
                 select(func.count()).select_from(NewsArticle).where(NewsArticle.fetched_at >= since)
@@ -40,12 +38,6 @@ class NewsRepository:
         )
 
     def list_in_window(self, *, start: datetime, end: datetime, limit: int) -> list[NewsArticle]:
-        """Articles in [start, end] by published_at, falling back to fetched_at when NULL.
-
-        Ordered fetched_at desc, id desc so the caller sees most-recent rows first.
-        """
-        from sqlalchemy import and_, func
-
         effective = func.coalesce(NewsArticle.published_at, NewsArticle.fetched_at)
         return list(
             self._session.scalars(

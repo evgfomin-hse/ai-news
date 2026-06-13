@@ -7,8 +7,6 @@ from app.models.base import Base
 
 
 class User(Base):
-    """Maps to the coursework `public.users` table (OAuth Sign-In)."""
-
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

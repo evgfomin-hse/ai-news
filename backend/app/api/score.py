@@ -32,10 +32,6 @@ def get_score(
     scores: Annotated[ScoreService, Depends(get_score_service)],
     summary_id: Annotated[int, Path(ge=1)],
 ) -> ScoreOut | None:
-    """Returns the stored score for `summary_id`, or null if none yet.
-
-    404 if the summary doesn't exist or doesn't belong to the current user.
-    """
     try:
         row = scores.get_for_user_summary(user.id, summary_id)
     except SummaryNotFoundError as exc:

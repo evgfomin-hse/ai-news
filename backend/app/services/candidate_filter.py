@@ -1,5 +1,3 @@
-"""Per-user candidate filtering — chunked LLM calls to narrow a big day's pool to top-N."""
-
 from __future__ import annotations
 
 import json
@@ -26,8 +24,6 @@ Rules:
 
 
 class PerUserCandidateFilter:
-    """For each user, narrow the day's pool of articles to `top_n` LLM-ranked picks."""
-
     def __init__(
         self,
         summarizer: LLMSummarizer,
@@ -60,7 +56,7 @@ class PerUserCandidateFilter:
                 limit=self._top_per_batch,
             )
             if indices is None:
-                continue  # Batch failed → contributes nothing.
+                continue
             any_batch_succeeded = True
             for local_idx in indices:
                 if local_idx < 0 or local_idx >= len(batch):
@@ -78,9 +74,7 @@ class PerUserCandidateFilter:
 
         return picked[:top_n]
 
-    def _iter_batches(
-        self, articles: list[NewsArticle]
-    ) -> Iterable[tuple[int, list[NewsArticle]]]:
+    def _iter_batches(self, articles: list[NewsArticle]) -> Iterable[tuple[int, list[NewsArticle]]]:
         for offset in range(0, len(articles), self._batch_size):
             yield offset, articles[offset : offset + self._batch_size]
 

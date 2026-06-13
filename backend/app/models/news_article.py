@@ -7,8 +7,6 @@ from app.models.base import Base
 
 
 class NewsArticle(Base):
-    """News items fetched by the daily job; consumed by the per-user summary pipeline."""
-
     __tablename__ = "news_articles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

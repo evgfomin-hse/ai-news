@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Score
+from app.models import Score, Summary
 from app.schemas.score import ScoreUpsertRequest
 
 
@@ -15,9 +15,6 @@ class ScoreRepository:
         return self._session.scalar(select(Score).where(Score.summary_id == summary_id))
 
     def list_recent_for_user(self, user_id: int, *, limit: int) -> list[Score]:
-        """Most recently updated scores for summaries belonging to `user_id`."""
-        from app.models import Summary
-
         return list(
             self._session.scalars(
                 select(Score)

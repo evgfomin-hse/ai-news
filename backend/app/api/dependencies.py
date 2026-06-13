@@ -11,11 +11,11 @@ from app.core.database import SessionLocal
 from app.models import User
 from app.repositories.summary_repository import SummaryRepository
 from app.services.candidate_filter import PerUserCandidateFilter
-from app.services.news_service import NewsApiFetcherService
 from app.services.health_service import HealthService
 from app.services.interest_service import InterestService
 from app.services.keyword_extractor import KeywordExtractor
 from app.services.llm_service import ChatCompletionsSummarizer, LLMSummarizer
+from app.services.news_service import NewsApiFetcherService
 from app.services.score_service import ScoreService
 from app.services.summary_service import (
     PostgresSummaryService,
@@ -28,17 +28,12 @@ from app.services.user_service import UserService
 
 
 def _build_summarizer() -> LLMSummarizer | None:
-    """Returns a configured summarizer, or None when no LLM backend is available.
-
-    OpenRouter requires an API key (no key => disabled => placeholder fallback).
-    A local endpoint (e.g. LM Studio) needs no key and is always built when configured.
-    """
-    api_key = settings.openrouter_api_key.strip()
+    api_key = settings.llm_api_key.strip()
     if settings.llm_is_openrouter and not api_key:
         return None
     return ChatCompletionsSummarizer(
         api_key=api_key,
-        model=settings.openrouter_model,
+        model=settings.llm_model,
         base_url=settings.llm_base_url,
         timeout_seconds=settings.llm_timeout_seconds,
         require_api_key=settings.llm_is_openrouter,
@@ -46,8 +41,6 @@ def _build_summarizer() -> LLMSummarizer | None:
 
 
 def _build_news_fetcher(db: Session) -> NewsApiFetcherService:
-    """Returns a NewsAPI fetcher. An empty key makes fetch_and_store raise, which the
-    pipeline swallows (it then runs against already-stored articles)."""
     return NewsApiFetcherService(
         db,
         api_key=settings.news_api_key,
@@ -58,7 +51,6 @@ def _build_news_fetcher(db: Session) -> NewsApiFetcherService:
 
 
 def _build_keyword_extractor() -> KeywordExtractor | None:
-    """Returns a keyword extractor wrapping the configured summarizer, or None when unconfigured."""
     summarizer = _build_summarizer()
     if summarizer is None:
         return None
@@ -69,7 +61,6 @@ def _build_keyword_extractor() -> KeywordExtractor | None:
 
 
 def _build_candidate_filter() -> PerUserCandidateFilter | None:
-    """Returns a per-user filter wrapping the configured summarizer, or None when unconfigured."""
     summarizer = _build_summarizer()
     if summarizer is None:
         return None
@@ -81,7 +72,6 @@ def _build_candidate_filter() -> PerUserCandidateFilter | None:
 
 
 def _build_telegram_sender() -> TelegramSender:
-    """The sender takes a per-user bot token at call time, so no global key check here."""
     return RequestsTelegramSender()
 
 

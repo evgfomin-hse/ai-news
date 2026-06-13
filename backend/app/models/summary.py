@@ -7,8 +7,6 @@ from app.models.base import Base
 
 
 class Summary(Base):
-    """Coursework `public.summaries` — markdown digest rows per user."""
-
     __tablename__ = "summaries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

@@ -9,8 +9,6 @@ from app.models import Score, Summary
 
 
 class ImportedSummary(Protocol):
-    """Structural shape the import path supplies (see services.summary_import.ParsedRow)."""
-
     body: str
     created_at: datetime | None
     score: bool | None
@@ -35,11 +33,6 @@ class SummaryRepository:
         )
 
     def list_all_with_scores_for_user(self, user_id: int) -> list[tuple[Summary, Score | None]]:
-        """Every summary for `user_id`, newest first, left-joined to its score (if any).
-
-        Used by the CSV export path. No pagination — the export endpoint is rare and
-        single-user, and the coursework dataset is small.
-        """
         rows = self._session.execute(
             select(Summary, Score)
             .outerjoin(Score, Score.summary_id == Summary.id)
@@ -74,7 +67,6 @@ class SummaryRepository:
         )
 
     def delete_for_user(self, summary_id: int, *, user_id: int) -> bool:
-        """Delete a summary owned by user_id. Returns True if a row was deleted."""
         row = self._session.scalar(
             select(Summary).where(Summary.id == summary_id, Summary.user_id == user_id)
         )
@@ -103,11 +95,6 @@ class SummaryRepository:
         user_id: int,
         rows: Iterable[ImportedSummary],
     ) -> tuple[int, int]:
-        """Create a new Summary per row (and a Score when present) for `user_id`.
-
-        Returns (summaries_inserted, scores_inserted). Does not commit — the caller
-        owns the transaction, so the whole import is all-or-nothing.
-        """
         summaries_inserted = 0
         scores_inserted = 0
         for row in rows:
@@ -119,7 +106,6 @@ class SummaryRepository:
             self._session.add(summary)
             summaries_inserted += 1
             if row.has_score:
-                # Flush so the autoincrement id is available for the Score FK.
                 self._session.flush()
                 self._session.add(
                     Score(

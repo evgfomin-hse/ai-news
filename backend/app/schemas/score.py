@@ -8,8 +8,6 @@ class ScoreUpsertRequest(BaseModel):
 
 
 class ScoreOut(BaseModel):
-    """Response shape; maps ORM `score` column onto the public `value` field."""
-
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: int

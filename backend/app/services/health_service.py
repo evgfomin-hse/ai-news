@@ -11,20 +11,16 @@ from app.repositories.database_repository import DatabaseRepository
 
 logger = logging.getLogger(__name__)
 
-# Status values follow the IETF "Health Check Response Format for HTTP APIs"
-# draft (draft-inadarei-api-health-check): pass / fail / warn.
 PASS = "pass"
 FAIL = "fail"
 
 
 @dataclass(frozen=True)
 class ComponentCheck:
-    """Health of a single dependency, shaped after a health+json `checks` entry."""
-
     component: str
     status: str
     observed_value_ms: float | None = None
-    output: str | None = None  # failure detail; absent when the check passes
+    output: str | None = None
 
 
 @dataclass(frozen=True)
@@ -57,6 +53,4 @@ class HealthService:
             logger.warning("Readiness database check failed: %s", msg)
             return ComponentCheck(component="database", status=FAIL, output=msg)
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-        return ComponentCheck(
-            component="database", status=PASS, observed_value_ms=elapsed_ms
-        )
+        return ComponentCheck(component="database", status=PASS, observed_value_ms=elapsed_ms)

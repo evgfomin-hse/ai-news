@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 class TransportOut(BaseModel):
     transportId: int | None = None
     telegramConfigured: bool = False
-    """Telegram chat id for outbound messages; null until the user saves it."""
     telegramChatId: str | None = None
 
 
@@ -29,7 +28,7 @@ class TelegramTestOut(BaseModel):
 
 class SendMessageBody(BaseModel):
     text: str = Field(
-        default="Test message from HSE repos.",
+        default="Hey, looks like you configured telegram integration and it works! Now you will recieve all generation in this chat",
         max_length=4096,
     )
 
@@ -39,7 +38,7 @@ class SendMessageOut(BaseModel):
     telegramMessageId: int | None = None
 
 
-class CaptureHelloOut(BaseModel):
+class CaptureOut(BaseModel):
     linked: bool
     chatId: str | None = None
     hint: str | None = None

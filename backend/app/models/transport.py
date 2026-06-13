@@ -8,8 +8,6 @@ from app.models.base import Base
 
 
 class Transport(Base):
-    """Coursework `public.transports` — per-user transport config in `data` JSONB."""
-
     __tablename__ = "transports"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

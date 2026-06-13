@@ -1,8 +1,8 @@
-import type { Components } from 'react-markdown';
-import type { FC, KeyboardEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import type { Components } from "react-markdown";
+import type { FC, KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   deleteUserSummary,
   downloadSummariesCsv,
@@ -14,16 +14,14 @@ import {
   uploadSummariesCsv,
   type SummaryListItem,
   type UserSummaryResponse,
-} from '../../shared/api';
-import { useAuth } from '../../features/Auth';
-import styles from './style.module.css';
+} from "../../shared/api";
+import { useAuth } from "../../features/Auth";
+import styles from "./style.module.css";
 
 const PAGE_SIZE = 6;
 
 const markdownComponents: Components = {
-  a: ({ ...props }) => (
-    <a {...props} rel="noreferrer noopener" />
-  ),
+  a: ({ ...props }) => <a {...props} rel="noreferrer noopener" />,
 };
 
 const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
@@ -36,27 +34,36 @@ const SummaryMarkdown: FC<{ text: string }> = ({ text }) => (
 
 function formatGeneratedAt(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
 }
 
 function formatListDate(iso: string): string {
   const date = new Date(`${iso}T12:00:00Z`);
-  return date.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function previewPlain(body: string, max = 200): string {
-  const flat = body.replace(/\s+/g, ' ').trim();
+  const flat = body.replace(/\s+/g, " ").trim();
   if (flat.length <= max) return flat;
   return `${flat.slice(0, max)}…`;
 }
 
-function openDetailFromKey(e: KeyboardEvent, it: SummaryListItem, open: (v: SummaryListItem) => void) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
+function openDetailFromKey(
+  e: KeyboardEvent,
+  it: SummaryListItem,
+  open: (v: SummaryListItem) => void,
+) {
+  if (e.key !== "Enter" && e.key !== " ") return;
   e.preventDefault();
   open(it);
 }
@@ -64,7 +71,7 @@ function openDetailFromKey(e: KeyboardEvent, it: SummaryListItem, open: (v: Summ
 const MS_DAY = 86_400_000;
 
 function pad2(n: number): string {
-  return String(n).padStart(2, '0');
+  return String(n).padStart(2, "0");
 }
 
 function msUntilNextUtcMidnight(from: Date): number {
@@ -73,7 +80,9 @@ function msUntilNextUtcMidnight(from: Date): number {
   const day = from.getUTCDate();
   const startUtcDay = Date.UTC(year, month, day, 0, 0, 0, 0);
   const next =
-    from.getTime() < startUtcDay ? startUtcDay : Date.UTC(year, month, day + 1, 0, 0, 0, 0);
+    from.getTime() < startUtcDay
+      ? startUtcDay
+      : Date.UTC(year, month, day + 1, 0, 0, 0, 0);
   return next - from.getTime();
 }
 
@@ -95,7 +104,10 @@ const DropCountdown: FC = () => {
   const month = now.getUTCMonth();
   const day = now.getUTCDate();
   const startUtcDay = Date.UTC(yer, month, day, 0, 0, 0, 0);
-  const dayProgress = Math.min(1, Math.max(0, (now.getTime() - startUtcDay) / MS_DAY));
+  const dayProgress = Math.min(
+    1,
+    Math.max(0, (now.getTime() - startUtcDay) / MS_DAY),
+  );
 
   const nextIso = new Date(now.getTime() + msLeft).toISOString().slice(0, 10);
 
@@ -120,9 +132,12 @@ const DropCountdown: FC = () => {
         <div className={styles.dropSeg}>{pad2(seconds)}</div>
       </div>
       <div className={styles.dropProgress} aria-hidden>
-        <div className={styles.dropProgressFill} style={{ width: `${dayProgress * 100}%` }} />
+        <div
+          className={styles.dropProgressFill}
+          style={{ width: `${dayProgress * 100}%` }}
+        />
       </div>
-      <div className={styles.dropSub}>Until 00:00 UTC · {nextIso}</div>
+      <div className={styles.dropSub}>Until 03:00 UTC · {nextIso}</div>
     </div>
   );
 };
@@ -138,11 +153,14 @@ const DESCRIPTION_DEBOUNCE_MS = 600;
 
 const Home: FC = () => {
   const { user } = useAuth();
-  const [summaryPayload, setSummaryPayload] = useState<UserSummaryResponse | null>(null);
+  const [summaryPayload, setSummaryPayload] =
+    useState<UserSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<SummaryListItem | null>(null);
-  const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<Record<string, SummaryFeedback>>({});
+  const [feedbackBySummaryId, setFeedbackBySummaryId] = useState<
+    Record<string, SummaryFeedback>
+  >({});
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -152,7 +170,9 @@ const Home: FC = () => {
   const [allTimeStories, setAllTimeStories] = useState<number | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const modalCloseRef = useRef<HTMLButtonElement>(null);
-  const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const descriptionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const fetchSummaryPage = useCallback(async (page: number) => {
     setLoading(true);
@@ -161,7 +181,7 @@ const Home: FC = () => {
       const payload = await getUserSummaryPage(page, PAGE_SIZE);
       setSummaryPayload(payload);
     } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Could not load summary');
+      setFetchError(e instanceof Error ? e.message : "Could not load summary");
     } finally {
       setLoading(false);
     }
@@ -173,7 +193,8 @@ const Home: FC = () => {
       try {
         await deleteUserSummary(id);
         const currentPage = summaryPayload?.page ?? 1;
-        const isLastOnPage = (summaryPayload?.items.length ?? 0) === 1 && currentPage > 1;
+        const isLastOnPage =
+          (summaryPayload?.items.length ?? 0) === 1 && currentPage > 1;
         fetchSummaryPage(isLastOnPage ? currentPage - 1 : currentPage);
       } catch {
         // deletion failed silently; page stays unchanged
@@ -212,18 +233,18 @@ const Home: FC = () => {
     if (!detailItem) return;
 
     const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     modalCloseRef.current?.focus();
 
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setDetailItem(null);
+      if (e.key === "Escape") setDetailItem(null);
     };
 
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
 
     return () => {
       document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
     };
   }, [detailItem]);
 
@@ -233,7 +254,7 @@ const Home: FC = () => {
     try {
       await downloadSummariesCsv();
     } catch (e) {
-      setExportError(e instanceof Error ? e.message : 'Export failed');
+      setExportError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
     }
@@ -247,12 +268,14 @@ const Home: FC = () => {
       const result = await uploadSummariesCsv(file);
       setImportMessage(
         `Imported ${result.summaries_imported} summaries` +
-          (result.scores_imported ? ` and ${result.scores_imported} scores` : '') +
-          '.',
+          (result.scores_imported
+            ? ` and ${result.scores_imported} scores`
+            : "") +
+          ".",
       );
       await fetchSummaryPage(1);
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : 'Import failed');
+      setImportError(e instanceof Error ? e.message : "Import failed");
     } finally {
       setImporting(false);
     }
@@ -261,7 +284,7 @@ const Home: FC = () => {
   const onImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Reset the input so re-selecting the same file fires change again.
-    e.target.value = '';
+    e.target.value = "";
     if (file) void importFromCsv(file);
   };
 
@@ -272,22 +295,41 @@ const Home: FC = () => {
       if (!Number.isInteger(numericId) || numericId <= 0) return;
 
       setFeedbackBySummaryId((prev) => {
-        const current = prev[summaryId] ?? { liked, description, saving: false, error: null };
-        return { ...prev, [summaryId]: { ...current, saving: true, error: null } };
+        const current = prev[summaryId] ?? {
+          liked,
+          description,
+          saving: false,
+          error: null,
+        };
+        return {
+          ...prev,
+          [summaryId]: { ...current, saving: true, error: null },
+        };
       });
       try {
-        await putScore(numericId, liked, description.trim() ? description : null);
+        await putScore(
+          numericId,
+          liked,
+          description.trim() ? description : null,
+        );
         setFeedbackBySummaryId((prev) => {
           const current = prev[summaryId];
           if (!current) return prev;
-          return { ...prev, [summaryId]: { ...current, saving: false, error: null } };
+          return {
+            ...prev,
+            [summaryId]: { ...current, saving: false, error: null },
+          };
         });
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Could not save your feedback';
+        const message =
+          e instanceof Error ? e.message : "Could not save your feedback";
         setFeedbackBySummaryId((prev) => {
           const current = prev[summaryId];
           if (!current) return prev;
-          return { ...prev, [summaryId]: { ...current, saving: false, error: message } };
+          return {
+            ...prev,
+            [summaryId]: { ...current, saving: false, error: message },
+          };
         });
       }
     },
@@ -305,12 +347,17 @@ const Home: FC = () => {
     }
 
     setFeedbackBySummaryId((prev) => {
-      const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
+      const current = prev[summaryId] ?? {
+        liked: null,
+        description: "",
+        saving: false,
+        error: null,
+      };
       return { ...prev, [summaryId]: { ...current, liked } };
     });
 
     const existing = feedbackBySummaryId[summaryId];
-    const description = existing?.description ?? '';
+    const description = existing?.description ?? "";
     persistScore(summaryId, liked, description);
   };
 
@@ -319,7 +366,12 @@ const Home: FC = () => {
 
     const summaryId = detailItem.id;
     setFeedbackBySummaryId((prev) => {
-      const current = prev[summaryId] ?? { liked: null, description: '', saving: false, error: null };
+      const current = prev[summaryId] ?? {
+        liked: null,
+        description: "",
+        saving: false,
+        error: null,
+      };
       return { ...prev, [summaryId]: { ...current, description } };
     });
 
@@ -368,13 +420,13 @@ const Home: FC = () => {
             ...prev,
             [summaryId]: {
               liked: score?.value ?? null,
-              description: score?.description ?? '',
+              description: score?.description ?? "",
               saving: false,
               error: null,
             },
           };
         });
-      } catch { }
+      } catch {}
     })();
 
     return () => {
@@ -384,7 +436,7 @@ const Home: FC = () => {
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const listDateLabel = formatListDate(todayIso);
-  const name = String(user?.username ?? 'user');
+  const name = String(user?.username ?? "user");
   const total = summaryPayload?.total ?? 0;
   const page = summaryPayload?.page ?? 1;
   const totalPages = summaryPayload?.total_pages ?? 0;
@@ -392,8 +444,8 @@ const Home: FC = () => {
     summaryPayload && totalPages > 0
       ? `${summaryPayload.items.length} / ${PAGE_SIZE} on this page`
       : loading && !summaryPayload
-        ? '…'
-        : '0 rows';
+        ? "…"
+        : "0 rows";
 
   return (
     <>
@@ -405,12 +457,12 @@ const Home: FC = () => {
         </div>
         <div className={styles.mastCell}>
           <div className={styles.kvLabel}>
-            TODAY<u>{todayStories ?? (loading ? '…' : 0)} stories</u>
+            TODAY<u>{todayStories ?? (loading ? "…" : 0)} stories</u>
           </div>
         </div>
         <div className={styles.mastCell}>
           <div className={styles.kvLabel}>
-            ALL TIME<u>{allTimeStories ?? (loading ? '…' : 0)}</u>
+            ALL TIME<u>{allTimeStories ?? (loading ? "…" : 0)}</u>
           </div>
         </div>
         <div className={styles.mastCell}>
@@ -424,7 +476,9 @@ const Home: FC = () => {
       {fetchError ? <p className={styles.error}>{fetchError}</p> : null}
 
       {loading && !summaryPayload ? (
-        <p className={`${styles.metaLine} ${styles.emptyPanel}`}>Loading summaries…</p>
+        <p className={`${styles.metaLine} ${styles.emptyPanel}`}>
+          Loading summaries…
+        </p>
       ) : null}
 
       {summaryPayload ? (
@@ -451,7 +505,13 @@ const Home: FC = () => {
                     onKeyDown={(e) => openDetailFromKey(e, it, setDetailItem)}
                   >
                     <div className={styles.rowN}>
-                      #<b>{String(idx + 1 + (page - 1) * PAGE_SIZE).padStart(2, '0')}</b>
+                      #
+                      <b>
+                        {String(idx + 1 + (page - 1) * PAGE_SIZE).padStart(
+                          2,
+                          "0",
+                        )}
+                      </b>
                     </div>
                     <div>
                       <h2 className={styles.rowTitle}>{it.title}</h2>
@@ -487,8 +547,8 @@ const Home: FC = () => {
                     Page {page} of {totalPages} · {total} total
                     {summaryPayload.generated_at ? (
                       <>
-                        {' '}
-                        · latest{' '}
+                        {" "}
+                        · latest{" "}
                         <time dateTime={summaryPayload.generated_at}>
                           {formatGeneratedAt(summaryPayload.generated_at)}
                         </time>
@@ -506,7 +566,9 @@ const Home: FC = () => {
                 <button
                   type="button"
                   className={styles.swBtn}
-                  disabled={loading || !summaryPayload || summaryPayload.page <= 1}
+                  disabled={
+                    loading || !summaryPayload || summaryPayload.page <= 1
+                  }
                   onClick={() => fetchSummaryPage(summaryPayload.page - 1)}
                 >
                   ← PREV
@@ -514,7 +576,11 @@ const Home: FC = () => {
                 <button
                   type="button"
                   className={styles.swBtn}
-                  disabled={loading || !summaryPayload || summaryPayload.page >= summaryPayload.total_pages}
+                  disabled={
+                    loading ||
+                    !summaryPayload ||
+                    summaryPayload.page >= summaryPayload.total_pages
+                  }
                   onClick={() => fetchSummaryPage(summaryPayload.page + 1)}
                 >
                   NEXT →
@@ -530,7 +596,7 @@ const Home: FC = () => {
                   disabled={loading || exporting || total === 0}
                   onClick={() => void exportToCsv()}
                 >
-                  {exporting ? 'EXPORTING…' : 'EXPORT TO CSV →'}
+                  {exporting ? "EXPORTING…" : "EXPORT TO CSV →"}
                 </button>
                 <button
                   type="button"
@@ -538,7 +604,7 @@ const Home: FC = () => {
                   disabled={loading || importing}
                   onClick={() => importInputRef.current?.click()}
                 >
-                  {importing ? 'IMPORTING…' : '← IMPORT FROM CSV'}
+                  {importing ? "IMPORTING…" : "← IMPORT FROM CSV"}
                 </button>
                 <input
                   ref={importInputRef}
@@ -549,10 +615,14 @@ const Home: FC = () => {
                 />
               </div>
               {exportError ? (
-                <p className={styles.error} role="alert">{exportError}</p>
+                <p className={styles.error} role="alert">
+                  {exportError}
+                </p>
               ) : null}
               {importError ? (
-                <p className={styles.error} role="alert">{importError}</p>
+                <p className={styles.error} role="alert">
+                  {importError}
+                </p>
               ) : null}
               {importMessage ? (
                 <p className={styles.note}>{importMessage}</p>
@@ -562,97 +632,116 @@ const Home: FC = () => {
         </>
       ) : null}
 
-      {detailItem ? (
-        (() => {
-          const feedback =
-            feedbackBySummaryId[detailItem.id] ??
-            ({ liked: null, description: '', saving: false, error: null } as SummaryFeedback);
-          const voteLocked = feedback.liked === null || feedback.liked === undefined;
+      {detailItem
+        ? (() => {
+            const feedback =
+              feedbackBySummaryId[detailItem.id] ??
+              ({
+                liked: null,
+                description: "",
+                saving: false,
+                error: null,
+              } as SummaryFeedback);
+            const voteLocked =
+              feedback.liked === null || feedback.liked === undefined;
 
-          return (
-        <div
-          className={styles.modalBackdrop}
-          role="presentation"
-          onClick={() => setDetailItem(null)}
-        >
-          <div
-            className={styles.modalSheet}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="summary-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className={styles.modalHead}>
-              <div className={styles.modalTitleBlock}>
-                <h2 id="summary-modal-title" className={styles.modalTitle}>
-                  {detailItem.title}
-                </h2>
-                <div className={styles.modalId}>{detailItem.id}</div>
-              </div>
-              <button
-                ref={modalCloseRef}
-                type="button"
-                className={styles.btnGhost}
-                aria-label="Close"
+            return (
+              <div
+                className={styles.modalBackdrop}
+                role="presentation"
                 onClick={() => setDetailItem(null)}
               >
-                Close
-              </button>
-            </header>
-            <div className={styles.modalBody}>
-              <SummaryMarkdown text={detailItem.body} />
-              <section className={styles.feedbackPanel} aria-label="Summary feedback">
-                <div className={styles.feedbackTitle}>Was this summary useful?</div>
-                <div className={styles.feedbackActions}>
-                  <button
-                    type="button"
-                    className={`${styles.swBtn} ${feedback.liked === true ? styles.feedbackBtnActive : ''}`}
-                    onClick={() => setDetailVote(true)}
-                    aria-pressed={feedback.liked === true}
-                  >
-                    Like
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.swBtn} ${feedback.liked === false ? styles.feedbackBtnActive : ''}`}
-                    onClick={() => setDetailVote(false)}
-                    aria-pressed={feedback.liked === false}
-                  >
-                    Dislike
-                  </button>
-                </div>
-                <label htmlFor="summary-feedback-description" className={styles.feedbackLabel}>
-                  What did you like or dislike?
-                </label>
-                <textarea
-                  id="summary-feedback-description"
-                  className={styles.feedbackInput}
-                  placeholder={
-                    voteLocked
-                      ? 'Like or dislike first, then add a comment...'
-                      : 'Write a short comment...'
-                  }
-                  value={feedback.description}
-                  onChange={(e) => setDetailDescription(e.target.value)}
-                />
                 <div
-                  className={styles.feedbackStatus}
-                  role="status"
-                  aria-live="polite"
+                  className={styles.modalSheet}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="summary-modal-title"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {feedback.saving ? 'Saving…' : null}
-                  {feedback.error ? `Error: ${feedback.error}` : null}
-                  {!feedback.saving && !feedback.error && feedback.liked !== null
-                    ? 'Saved'
-                    : null}
+                  <header className={styles.modalHead}>
+                    <div className={styles.modalTitleBlock}>
+                      <h2
+                        id="summary-modal-title"
+                        className={styles.modalTitle}
+                      >
+                        {detailItem.title}
+                      </h2>
+                      <div className={styles.modalId}>{detailItem.id}</div>
+                    </div>
+                    <button
+                      ref={modalCloseRef}
+                      type="button"
+                      className={styles.btnGhost}
+                      aria-label="Close"
+                      onClick={() => setDetailItem(null)}
+                    >
+                      Close
+                    </button>
+                  </header>
+                  <div className={styles.modalBody}>
+                    <SummaryMarkdown text={detailItem.body} />
+                    <section
+                      className={styles.feedbackPanel}
+                      aria-label="Summary feedback"
+                    >
+                      <div className={styles.feedbackTitle}>
+                        Was this summary useful?
+                      </div>
+                      <div className={styles.feedbackActions}>
+                        <button
+                          type="button"
+                          className={`${styles.swBtn} ${feedback.liked === true ? styles.feedbackBtnActive : ""}`}
+                          onClick={() => setDetailVote(true)}
+                          aria-pressed={feedback.liked === true}
+                        >
+                          Like
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.swBtn} ${feedback.liked === false ? styles.feedbackBtnActive : ""}`}
+                          onClick={() => setDetailVote(false)}
+                          aria-pressed={feedback.liked === false}
+                        >
+                          Dislike
+                        </button>
+                      </div>
+                      <label
+                        htmlFor="summary-feedback-description"
+                        className={styles.feedbackLabel}
+                      >
+                        What did you like or dislike?
+                      </label>
+                      <textarea
+                        id="summary-feedback-description"
+                        className={styles.feedbackInput}
+                        placeholder={
+                          voteLocked
+                            ? "Like or dislike first, then add a comment..."
+                            : "Write a short comment..."
+                        }
+                        value={feedback.description}
+                        onChange={(e) => setDetailDescription(e.target.value)}
+                      />
+                      <div
+                        className={styles.feedbackStatus}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {feedback.saving ? "Saving…" : null}
+                        {feedback.error ? `Error: ${feedback.error}` : null}
+                        {!feedback.saving &&
+                        !feedback.error &&
+                        feedback.liked !== null
+                          ? "Saved"
+                          : null}
+                      </div>
+                    </section>
+                  </div>
                 </div>
-              </section>
-            </div>
-          </div>
-        </div>
-          );
-        })()
-      ) : null}
+              </div>
+            );
+          })()
+        : null}
     </>
   );
 };

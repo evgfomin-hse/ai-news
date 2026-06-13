@@ -277,7 +277,6 @@ def _generate_one_for_user(
         recent_scores=score_signals_from_rows(recent_scores),
         news=news_items_from_rows(news_rows),
     )
-    logger.info("Summary prompt for user_id=%s:\n%s", user_id, prompt)
     try:
         body = summarizer.generate(prompt=prompt)
     except LLMError as exc:

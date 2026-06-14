@@ -91,8 +91,23 @@ jobs:
         working-directory: e2e
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
         working-directory: e2e
+        # The CDN download intermittently stalls after hitting 100% (extraction /
+        # headless-shell / FFMPEG), hanging the job. Cap each attempt and retry so
+        # one stuck download recovers instead of blocking until cancellation.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::playwright install (attempt $attempt)"
+            if timeout 240 npx playwright install --with-deps chromium; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Attempt $attempt failed or timed out after 240s; retrying..."
+            sleep 5
+          done
+          echo "playwright install failed after 3 attempts" >&2
+          exit 1
 
       # playwright.config.ts starts uvicorn (backend) and the Vite dev server itself,
       # then waits for them before running the suite.

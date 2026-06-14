@@ -10,7 +10,6 @@ export {
   getAllTimeStats,
   getTodayStats,
   getUserSummaryPage,
-  postGenerateUserSummary,
   type SummaryListItem,
   type UserSummaryResponse,
 } from './calls/summary';

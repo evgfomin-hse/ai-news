@@ -74,9 +74,7 @@ Specs are split by auth zone: `tests/unauth/` runs without a session,
   `e2e-playwright@example.invalid`). State persists across runs — tests are
   written to be idempotent (seed a fresh row when needed, use `Date.now()`
   markers for interests).
-- `POST /summary/generate` never calls a real LLM during e2e: the `data.ts`
-  seeding helpers send `{ "placeholder": true }`, which tells the backend to skip
-  the LLM and insert the deterministic placeholder row the tests assert against.
-  This holds regardless of which LLM backend `backend/.env` points at (including a
-  local no-key LM Studio). The flag is per-request, so it needs no env/config change
-  and no backend restart.
+- Seeding never calls a real LLM during e2e: the `data.ts` helpers insert rows via
+  `POST /summary/import.csv` (the export-format CSV), so a summary row is created
+  deterministically regardless of which LLM backend `backend/.env` points at
+  (including a local no-key LM Studio) and with no backend restart.

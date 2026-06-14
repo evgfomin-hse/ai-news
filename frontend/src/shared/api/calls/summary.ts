@@ -38,15 +38,6 @@ export async function deleteUserSummary(id: string): Promise<void> {
   }
 }
 
-export async function postGenerateUserSummary(): Promise<void> {
-  const response = await apiFetch('/summary/generate', { method: 'POST' });
-
-  if (!response.ok) {
-    const j = (await response.json().catch(() => ({}))) as { detail?: unknown };
-    throw new Error(parseFastApiDetail(j, 'Could not generate summary'));
-  }
-}
-
 export async function getTodayStats(): Promise<{ stories_today: number }> {
   const response = await apiFetch('/summary/stats/today');
 

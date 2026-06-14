@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { bootstrapSession } from "../helpers/bootstrap";
-import { fetchScore, generateSummary } from "../helpers/data";
+import { ensureSummaryCount, fetchScore, generateSummary } from "../helpers/data";
 
 test.describe("authenticated", () => {
   test.beforeEach(async ({ context }) => {

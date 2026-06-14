@@ -83,11 +83,11 @@ jobs:
             e2e/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install
         working-directory: frontend
 
       - name: Install e2e dependencies
-        run: npm ci
+        run: npm install
         working-directory: e2e
 
       - name: Install Playwright browser

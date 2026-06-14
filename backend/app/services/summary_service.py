@@ -486,7 +486,6 @@ class SummaryMaintenanceService:
                 recent_scores=score_signals_from_rows(recent_scores),
                 news=news_items_from_rows(filtered),
             )
-            logger.info("Summary prompt for user_id=%s:\n%s", user_id, prompt)
             if self._summarizer is None:
                 stats["digest_failed"] += 1
                 continue

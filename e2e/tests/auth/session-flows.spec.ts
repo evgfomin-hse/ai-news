@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { bootstrapSession } from "../helpers/bootstrap";
-import { ensureSummaryCount, fetchScore, generateSummary } from "../helpers/data";
+import {
+  ensureSummaryCount,
+  fetchScore,
+  generateSummary,
+} from "../helpers/data";
 
 test.describe("authenticated", () => {
   test.beforeEach(async ({ context }) => {
@@ -212,5 +216,148 @@ test.describe("authenticated", () => {
       timeout: 10_000,
     });
     await expect(prev).toBeDisabled();
+  });
+
+  test("CSV import adds summaries to the feed", async ({ page }) => {
+    // Create a CSV with two summaries using unique identifiers to avoid collisions.
+    const marker = `e2e-csv-${Date.now()}`;
+    const now = new Date().toISOString().replace(/\.\d+Z$/, "");
+    const csvContent = [
+      "summary_id,created_at_utc,body,score,score_description",
+      `1,${now},## ${marker} summary 1 with Like,TRUE,Good article`,
+      `2,${now},## ${marker} summary 2 no score,,`,
+    ].join("\n");
+
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: /good morning/i }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Click the import button and upload the CSV file.
+    const fileInput = page.locator('input[type="file"][accept*="csv"]');
+    const file = {
+      name: "test-import.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(csvContent, "utf-8"),
+    };
+
+    await fileInput.setInputFiles({
+      name: file.name,
+      mimeType: file.mimeType,
+      buffer: file.buffer,
+    });
+
+    // Wait for the import to complete and check the success message.
+    await expect(page.getByText(/imported 2 summaries/i)).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Verify both summaries appear in the feed (using unique marker).
+    await expect(
+      page.getByText(new RegExp(`${marker} summary 1`)),
+    ).toBeVisible();
+    await expect(
+      page.getByText(new RegExp(`${marker} summary 2`)),
+    ).toBeVisible();
+  });
+
+  test("CSV import with invalid rows shows error message", async ({ page }) => {
+    // Create a CSV with an invalid row (missing required body column).
+    const csvContent = [
+      "summary_id,created_at_utc,body,score,score_description",
+      ",2026-01-01T12:00:00,,FALSE,", // Empty body (required field)
+    ].join("\n");
+
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: /good morning/i }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    const fileInput = page.locator('input[type="file"][accept*="csv"]');
+    const file = {
+      name: "invalid.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(csvContent, "utf-8"),
+    };
+
+    await fileInput.setInputFiles({
+      name: file.name,
+      mimeType: file.mimeType,
+      buffer: file.buffer,
+    });
+
+    // Wait for error message to appear.
+    const errorAlert = page.getByRole("alert").filter({
+      hasText: /body is required/i,
+    });
+    await expect(errorAlert).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("displays summary statistics (today and all-time)", async ({
+    context,
+    page,
+  }) => {
+    // Seed at least one summary so the stats are non-zero.
+    await generateSummary(context);
+
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: /good morning/i }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Find the masthead section which contains the statistics.
+    const masthead = page.locator("div").filter({
+      has: page.getByRole("heading", { name: /good morning/i }),
+    });
+
+    // Check that TODAY stat is displayed with the count and "stories" label.
+    const todayWithCount = masthead.getByText(/TODAY.*\d+.*stories/i);
+    await expect(todayWithCount).toBeVisible();
+
+    // Check that ALL TIME stat is displayed with the count.
+    const allTimeWithCount = masthead.getByText(/ALL TIME.*\d+/i);
+    await expect(allTimeWithCount).toBeVisible();
+  });
+
+  test("summary statistics update when new summaries are imported", async ({
+    context,
+    page,
+  }) => {
+    // Import a new summary first to ensure a fresh state.
+    const marker = `e2e-stats-${Date.now()}`;
+    const now = new Date().toISOString().replace(/\.\d+Z$/, "");
+    const csvContent = [
+      "summary_id,created_at_utc,body,score,score_description",
+      `1,${now},## ${marker} new summary,,`,
+    ].join("\n");
+
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: /good morning/i }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    const fileInput = page.locator('input[type="file"][accept*="csv"]');
+    await fileInput.setInputFiles({
+      name: "stats-test.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(csvContent, "utf-8"),
+    });
+
+    // Wait for import to complete.
+    await expect(page.getByText(/imported 1 summaries/i)).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Verify the new summary appears in the feed.
+    await expect(page.getByText(new RegExp(marker))).toBeVisible();
+
+    // Reload the page to ensure stats are refreshed from the server.
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: /good morning/i }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Check that the newly imported summary is still visible after reload.
+    await expect(page.getByText(new RegExp(marker))).toBeVisible();
   });
 });

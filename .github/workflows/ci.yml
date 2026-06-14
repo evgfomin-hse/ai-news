@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main, stable]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend tests + coverage gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Tests run on in-memory SQLite (see tests/conftest.py); no external DB needed.
+      # Fails the build when total coverage drops below 80%.
+      - name: Run pytest with coverage gate
+        run: >-
+          python -m pytest
+          --cov=app
+          --cov-report=term-missing
+          --cov-fail-under=80
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # The backend (spawned by Playwright's webServer) and the bootstrap helper
+      # read these from the process env; env vars outrank backend/.env.
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/app
+      E2E_BOOTSTRAP_SECRET: e2e-ci-bootstrap-secret
+      JWT_SECRET: ci-only-jwt-secret-rotate-me
+      ENABLE_SUMMARY_NIGHTLY_SCHEDULER: "false"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      # playwright.config.ts starts uvicorn (backend) and the Vite dev server itself,
+      # then waits for them before running the suite.
+      - name: Run Playwright tests
+        run: npm test
+        working-directory: e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

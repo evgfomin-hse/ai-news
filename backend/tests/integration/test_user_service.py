@@ -1,0 +1,18 @@
+from sqlalchemy.orm import Session
+
+from app.models import User
+from app.services.user_service import UserService
+
+
+def test_get_by_id_returns_user(db: Session, user: User):
+    assert UserService(db).get_by_id(user.id).id == user.id
+
+
+def test_get_or_create_delegates_to_repository(db: Session):
+    created = UserService(db).get_or_create(
+        subject="svc-sub", name="S", picture=None, email="s@example.com"
+    )
+    assert created.id is not None
+    again = UserService(db).get_or_create(subject="svc-sub", name="S2", picture=None, email=None)
+    assert again.id == created.id
+    assert again.name == "S2"

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.api.transports import _pick_hello_chat_from_updates
+from app.api.transports import _pick_chat_from_updates
 from app.services.transport_service import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_TOKEN_KEY,
@@ -53,8 +53,8 @@ class TestTelegramChatIdFromRow:
         assert telegram_chat_id_from_row(_row({TELEGRAM_CHAT_ID_KEY: True})) is None
 
 
-class TestPickHelloChatFromUpdates:
-    def _msg(self, *, update_id, text, chat_id=42, chat_type="private", edited=False):
+class TestPickChatFromUpdates:
+    def _msg(self, *, update_id, chat_id=42, chat_type="private", edited=False, text="hi"):
         key = "edited_message" if edited else "message"
         return {
             "update_id": update_id,
@@ -62,33 +62,31 @@ class TestPickHelloChatFromUpdates:
         }
 
     def test_empty_updates_returns_none(self):
-        assert _pick_hello_chat_from_updates([]) is None
+        assert _pick_chat_from_updates([]) is None
 
-    def test_ignores_non_hello_text(self):
-        assert _pick_hello_chat_from_updates([self._msg(update_id=1, text="hi")]) is None
-
-    def test_hello_is_case_insensitive_and_trimmed(self):
-        result = _pick_hello_chat_from_updates([self._msg(update_id=1, text="  Hello  ")])
+    def test_picks_message_regardless_of_text(self):
+        # The "hello" hint is advisory only; any message carrying a chat id is accepted.
+        result = _pick_chat_from_updates([self._msg(update_id=1, text="anything")])
         assert result == (1, "42")
 
     def test_picks_latest_update_id(self):
         updates = [
-            self._msg(update_id=1, text="hello", chat_id=11),
-            self._msg(update_id=5, text="hello", chat_id=55),
-            self._msg(update_id=3, text="hello", chat_id=33),
+            self._msg(update_id=1, chat_id=11),
+            self._msg(update_id=5, chat_id=55),
+            self._msg(update_id=3, chat_id=33),
         ]
-        assert _pick_hello_chat_from_updates(updates) == (5, "55")
+        assert _pick_chat_from_updates(updates) == (5, "55")
 
     def test_prefers_private_over_group(self):
         updates = [
-            self._msg(update_id=10, text="hello", chat_id=-1, chat_type="group"),
-            self._msg(update_id=2, text="hello", chat_id=7, chat_type="private"),
+            self._msg(update_id=10, chat_id=-1, chat_type="group"),
+            self._msg(update_id=2, chat_id=7, chat_type="private"),
         ]
-        assert _pick_hello_chat_from_updates(updates) == (2, "7")
+        assert _pick_chat_from_updates(updates) == (2, "7")
 
     def test_accepts_edited_message(self):
-        result = _pick_hello_chat_from_updates(
-            [self._msg(update_id=9, text="hello", chat_id=8, edited=True)]
+        result = _pick_chat_from_updates(
+            [self._msg(update_id=9, chat_id=8, edited=True)]
         )
         assert result == (9, "8")
 
@@ -102,4 +100,4 @@ class TestPickHelloChatFromUpdates:
         ],
     )
     def test_malformed_updates_are_skipped(self, broken):
-        assert _pick_hello_chat_from_updates([broken]) is None
+        assert _pick_chat_from_updates([broken]) is None

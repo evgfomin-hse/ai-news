@@ -8,10 +8,14 @@ from collections.abc import Generator, Iterator
 # `Settings()` validates required env at import time; satisfy it before app imports.
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("ENABLE_SUMMARY_NIGHTLY_SCHEDULER", "false")
+# Isolate tests from a developer's local `.env`: secret-gated endpoints must present
+# their "not configured" (404) behavior by default. Env vars outrank the `.env` file in
+# pydantic-settings, so a plain assignment overrides whatever the developer set there.
+os.environ["E2E_BOOTSTRAP_SECRET"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -39,6 +43,15 @@ def engine() -> Iterator[Engine]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # SQLite ignores `ON DELETE CASCADE` unless foreign keys are enabled per-connection.
+    # Enabling it makes the in-memory test schema honor FK cascades like the Postgres prod DB.
+    @event.listens_for(eng, "connect")
+    def _enable_sqlite_fk(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     Base.metadata.create_all(bind=eng, tables=list(_SQLITE_TABLES))
     try:
         yield eng
